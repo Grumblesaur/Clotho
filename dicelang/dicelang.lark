@@ -1,0 +1,318 @@
+OP_DIE: "d"
+OP_ROLL: "r"
+OP_HIGH: "h"
+OP_LOW: "l"
+OP_COIN: "!"
+OP_RS: "@"
+OP_RSR: "@!"
+OP_LEN: "#"
+OP_MAX: "!>"
+OP_MIN: "!<"
+OP_STAT: "!:"
+OP_SHUFFLE: "><"
+OP_SORT: "<>"
+OP_ADD: "+"
+OP_SUB: "-"
+OP_CAT: "$"
+OP_MUL: "*"
+OP_DIV: "/"
+OP_LSHIFT: "<<"
+OP_RSHIFT: ">>"
+OP_IDIV: "//"
+OP_EXP: "**"
+OP_LOG: "%%"
+OP_MOD: "%"
+OP_BIT_AND: "&"
+OP_BIT_OR: "|"
+OP_BIT_XOR: "^"
+OP_BIT_NOT: "~"
+OP_EQ: "=="
+OP_NE: "!="
+OP_GT: ">"
+OP_LT: "<"
+OP_GE: ">="
+OP_LE: "<="
+OP_COMPARE: OP_EQ | OP_NE | OP_GT | OP_LT | OP_GE | OP_LE
+
+OP_ASSIGN: "="
+OP_AUG_ADD: "+="
+OP_AUG_SUB: "-="
+OP_AUG_CAT: "$="
+OP_AUG_MUL: "*="
+OP_AUG_DIV: "/="
+OP_AUG_IDIV: "//="
+OP_AUG_MOD: "%="
+OP_AUG_LOG: "%%="
+OP_AUG_EXP: "**="
+OP_AUG_LSHIFT: "<<="
+OP_AUG_RSHIFT: ">>="
+OP_AUG_BIT_AND: "&="
+OP_AUG_BIT_OR: "|="
+OP_AUG_BIT_XOR: "^="
+OP_AUG_AND: "and="
+OP_AUG_OR: "or="
+OP_AUG_XOR: "xor="
+OP_AUGMENT: OP_AUG_ADD | OP_AUG_SUB | OP_AUG_CAT | OP_AUG_MUL
+          | OP_AUG_DIV | OP_AUG_IDIV | OP_AUG_MOD | OP_AUG_LOG
+          | OP_AUG_EXP | OP_AUG_LSHIFT | OP_AUG_RSHIFT | OP_AUG_BIT_AND
+          | OP_AUG_BIT_OR | OP_AUG_BIT_XOR | OP_AUG_AND | OP_AUG_OR
+          | OP_AUG_XOR
+
+KW_IF: "if"
+KW_THEN: "then"
+KW_ELSE: "else"
+KW_DEL: "del"
+KW_WHILE: "while"
+KW_DO: "do"
+KW_FOR: "for"
+KW_IN: "in"
+KW_BY: "by"
+KW_TO: "to"
+KW_THROUGH: "through" | "thru"
+KW_BEGIN: "begin"
+KW_END: "end"
+KW_REPEAT: "repeat"
+KW_AND: "and"
+KW_OR: "or"
+KW_XOR: "xor"
+KW_MY: "my"
+KW_OUR: "our"
+KW_PUB: "pub"
+KW_CORE: "core"
+KW_LIKE: "like"
+KW_SEEK: "seek"
+KW_IS: /\bis\b/
+KW_NOT: /\bnot\b/
+identity_op: KW_IS | KW_IS KW_NOT
+
+FN_ABS: "abs"
+FN_SPLIT: "split"
+FN_JOIN: "join"
+FN_UPPER: "uppercase"
+FN_LOWER: "lowercase"
+FN_HEX: "hex"
+FN_BIN: "bin"
+FN_STR: "str"
+FN_INT: "int"
+FN_SET: "set"
+FN_DICT: "dict"
+FN_LIST: "list"
+FN_FLOAT: "float"
+FN_BOOL: "bool"
+FN_EXECUTE: "execute"
+
+start: expr (";" expr)* ";"?
+
+body: block | short
+short: expr
+block: KW_BEGIN expr (";" expr)* ";"? KW_END
+conditional: KW_IF expr KW_THEN body -> if_block
+           | KW_IF expr KW_THEN body KW_ELSE body -> if_else_block
+
+iteration: KW_WHILE expr KW_DO body -> while_loop
+         | KW_DO body KW_WHILE expr -> do_while_loop
+         | KW_FOR scoped_identifier KW_DO body -> for_loop
+
+lvalue: identifier subscript_chain -> lvalue_field
+      | identifier -> lvalue_name
+
+rvalue: expr
+subscript_chain: subscript+
+subscript: "[" slice "]" -> subscript_bracket
+         | "." scoped_identifier -> subscript_dot
+
+slice: expr -> index_or_key
+     | ":" ":"? -> whole_slice
+     | expr ":" ":"? -> start_slice
+     | expr ":" ":" expr -> start_step_slice
+     | expr ":" expr ":"? -> start_stop_slice
+     | expr ":" expr ":" expr -> start_stop_step_slice
+     | ":" expr ":"? -> stop_slice
+     | ":" expr ":" expr -> stop_step_slice
+     | ":" ":" expr -> step_slice
+
+expr: assignment
+
+assignment: lvalue OP_ASSIGN rvalue -> assignment_single
+          | lvalue ("," lvalue)+ OP_ASSIGN rvalue ("," rvalue)+ -> assignment_multi
+          | OP_MUL lvalue ("," lvalue)+ OP_ASSIGN rvalue -> assignment_unpack_left
+          | (lvalue ",")+ OP_MUL lvalue ("," lvalue)+ OP_ASSIGN rvalue -> assignment_unpack_middle
+          | (lvalue ",")+ OP_MUL lvalue OP_ASSIGN rvalue -> assignment_unpack_right
+          | augmented
+
+augmented: lvalue OP_AUGMENT rvalue -> augmented_any
+         | compound
+
+compound: conditional
+        | iteration
+        | function
+        | block
+        | inline_if
+
+function: "(" parameters ")" "->" body -> function_plenary
+        | "(" ")" "->" body -> function_nullary
+
+parameters: IDENT ("," IDENT)+ ","? -> fixed_params
+          | (IDENT ",")* IDENT "*" ","? -> variadic_params
+
+inline_if: repeat KW_IF repeat KW_ELSE inline_if -> if_ternary
+         | repeat KW_IF KW_ELSE inline_if -> if_binary
+         | repeat
+
+repeat: repeat KW_REPEAT expr -> repetition
+      | or
+
+or: or KW_OR xor -> boolean_or
+  | xor
+
+xor: xor KW_XOR and -> boolean_xor
+   | and
+
+and: and KW_AND not -> boolean_and
+   | not
+
+not: KW_NOT comparison -> boolean_not
+   | comparison
+
+comparison: bitwise_and
+          | bitwise_and (OP_COMPARE bitwise_and)+ -> compare_math
+          | bitwise_and (identity_op bitwise_and)+ -> identity
+          | bitwise_and KW_IN bitwise_and -> member_of
+          | bitwise_and KW_NOT KW_IN bitwise_and -> member_of_negated
+
+bitwise_or: bitwise_or OP_BIT_OR bitwise_xor -> bit_or
+          | bitwise_xor
+
+bitwise_xor: bitwise_xor OP_BIT_XOR bitwise_and -> bit_xor
+           | bitwise_and
+
+bitwise_and: bitwise_and OP_BIT_AND arithm -> bit_and
+           | arithm
+
+arithm: arithm OP_ADD term -> addition
+      | arithm OP_SUB term -> subtraction
+      | arithm OP_CAT term -> catenation
+      | term
+
+term: term OP_MUL factor -> multiplication
+    | term OP_DIV factor -> division
+    | term OP_IDIV factor -> integer_division
+    | term OP_MOD factor -> remainder
+    | term OP_LSHIFT factor -> left_shift
+    | term OP_RSHIFT factor -> right_shift
+    | factor
+
+factor: OP_SUB factor -> unary_minus
+      | OP_ADD factor -> unary_plus
+      | OP_BIT_NOT factor -> bit_not
+      | power
+
+power: special OP_EXP power -> exponent
+     | power OP_LOG special -> logarithm
+     | special
+
+special: OP_BIT_AND dice -> sum_or_join
+       | OP_LEN dice -> len_or_mag
+       | OP_MAX dice -> max_unary
+       | OP_MIN dice -> min_unary
+       | special OP_MAX dice -> max_binary
+       | special OP_MIN dice -> min_binary
+       | special OP_COIN dice -> coinflip
+       | OP_RS dice -> random_selection_unary
+       | special OP_RS dice -> random_selection_binary
+       | OP_RSR dice -> random_selection_replacing_unary
+       | special OP_RSR dice -> random_selection_replacing_binary
+       | OP_SORT dice -> sorted
+       | OP_SHUFFLE dice -> shuffled
+       | OP_STAT dice -> statistics
+       | dice
+
+dice: OP_DIE primary -> die_unary
+    | dice OP_ROLL primary -> roll_binary
+    | OP_ROLL primary -> roll_unary
+    | dice OP_DIE primary -> die_binary
+    | dice OP_ROLL primary OP_HIGH primary -> roll_ternary_high
+    | dice OP_ROLL primary OP_LOW primary -> roll_ternary_high
+    | dice OP_DIE primary OP_HIGH primary -> die_ternary_high
+    | dice OP_DIE primary OP_LOW primary -> die_ternary_low
+    | primary
+
+primary: atom
+       | retrieval
+       | primary "(" arguments? ")" -> function_call
+       | atom KW_SEEK primary -> regex_search
+       | atom KW_LIKE primary -> regex_match
+
+retrieval: identifier subscript_chain?
+
+arguments: spread ("," spread)* ","?
+
+atom: number
+    | boolean
+    | string
+    | undefined
+    | list
+    | tuple
+    | dict
+    | set
+    | "(" expr ")" -> priority
+    | OP_BIT_OR expr OP_BIT_OR -> floor_or_flatten
+
+number: LIT_INT_DEC | LIT_INT_HEX | LIT_REAL | LIT_COMPLEX
+      | LIT_NAN | LIT_INF
+LIT_NAN: "nan"
+LIT_INF: "inf"
+
+string: LIT_STRING_DOUBLE | LIT_STRING_SINGLE
+boolean: LIT_TRUE | LIT_FALSE
+undefined: LIT_UNDEFINED
+list: "[" "]" -> list_empty
+    | "[" spread ("," spread)* ","? "]" -> list_populated
+    | "[" expr KW_TO expr "]" -> list_range
+    | "[" expr KW_TO expr KW_BY expr "]" -> list_range_stepped
+    | "[" expr KW_THROUGH expr "]" -> list_closed
+    | "[" expr KW_THROUGH expr KW_BY expr "]" -> list_closed_stepped
+
+tuple: "(" spread "," ")" -> tuple_single
+     | "(" spread ("," spread)+ ","? ")" -> tuple_multi
+     | "(" ")" -> tuple_empty
+
+spread: "*" expr -> spread_unpackable
+          | expr -> spread_single
+
+dict: "{" "}" -> dict_empty
+    | "{" kv_pair ("," kv_pair)* ","? "}" -> dict_populated
+
+set: "{" spread ("," spread)* "}" -> set_populated
+
+kv_pair: expr ":" expr
+
+scoped_identifier: IDENT
+user_identifier: KW_MY IDENT
+server_identifier: KW_OUR IDENT
+public_identifier: KW_PUB IDENT
+identifier: scoped_identifier
+          | user_identifier
+          | server_identifier
+          | public_identifier
+
+%import common.ESCAPED_STRING -> LIT_STRING_DOUBLE
+%import common._STRING_ESC_INNER
+%import common.NUMBER -> LIT_REAL
+%import common.INT -> LIT_INT_DEC
+%import common.HEXDIGIT
+LIT_TRUE: "True"
+LIT_FALSE: "False"
+LIT_UNDEFINED: "Undefined"
+LIT_COMPLEX: LIT_REAL ("j"|"J")
+LIT_INT_HEX: "0x" HEXDIGIT+
+LIT_STRING_SINGLE: "'" _STRING_ESC_INNER "'"
+
+%import common.CNAME -> IDENT
+%ignore "?" /.*/
+%import common.WS
+%import common.NEWLINE
+%ignore WS
+%ignore "`"
+
+
