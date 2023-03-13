@@ -125,8 +125,7 @@ compound: conditional
         | block
         | inline_if
 
-function: "(" parameters ")" "->" body -> function_plenary
-        | "(" ")" "->" body -> function_nullary
+function: "(" parameters? ")" "->" body
 
 parameters: IDENT ("," IDENT)+ ","? -> fixed_params
           | (IDENT ",")* IDENT "*" ","? -> variadic_params
@@ -184,7 +183,6 @@ factor: OP_SUB factor -> unary_minus
       | power
 
 power: special OP_EXP power -> exponent
-     | power OP_LOG special -> logarithm
      | special
 
 special: OP_BIT_AND dice -> sum_or_join
@@ -208,6 +206,7 @@ dice: OP_DIE primary -> die_unary
 
 primary: atom
        | retrieval
+       | primary subscript_chain -> retrieval_atomic
        | primary "(" arguments* ")" -> function_call
        | atom KW_SEEK primary -> regex_search
        | atom KW_LIKE primary -> regex_match

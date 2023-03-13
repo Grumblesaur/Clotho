@@ -5,6 +5,7 @@ import operator
 import math
 import dicecore
 import utils
+import inspect
 
 from collections.abc import Iterable, Sequence
 from typing import Hashable
@@ -13,6 +14,8 @@ from lark.visitors import Interpreter
 from lark import Token
 from special import Undefined, Spread
 from lookup import Lookup, Accessor, IdentType, CallStack
+from user_function import UserFunction
+from functools import partialmethod
 from exceptions import (
     LiteralError, SpreadError, SubscriptError, Impossible,
     AssignmentError, UnpackError,
@@ -110,10 +113,6 @@ class DicelangInterpreter(Interpreter):
     def exponent(self, tree):
         mantissa, _, superscript = self.visit_children(tree)
         return mantissa ** superscript
-
-    def logarithm(self, tree):
-        base, _, antilogarithm = self.visit_children(tree)
-        return math.log(antilogarithm, base)
 
     def unary_minus(self, tree):
         _, operand = self.visit_children(tree)
@@ -492,8 +491,22 @@ class DicelangInterpreter(Interpreter):
     def retrieval(self, tree):
         return self.visit(tree.children[0]).get()
 
+    def retrieval_atomic(self, tree):
+        target, *subscripts = self.visit_children(tree)
+        last = Undefined
+        for itype, name in subscripts:
+            last = target
+            target = utils.get_attr_or_item(target, name)
+        if isinstance(target, UserFunction):
+            target.this = last
+            return target
+        if inspect.ismethod(target):
+            return partialmethod(target, last)
+        return target
+
     def function_call(self, tree):
-        callee, arguments = self.visit_children(tree)
+        callee, *arguments = self.visit_children(tree)
+        arguments = arguments[0] if arguments else ()
         return callee(*arguments)
 
     def arguments(self, tree):
@@ -549,7 +562,9 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        '"a\\nb"',
+        '"beep boop".split().__len__()',
+        'x = "beep boop"; x.split().__len__()',
+        'y = {"a": 1}; y.a + y["a"]',
     ]
     for t in tests:
         ast = parser.parse(t)

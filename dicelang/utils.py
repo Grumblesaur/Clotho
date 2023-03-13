@@ -4,6 +4,12 @@ from special import Spread
 from collections.abc import Iterable
 
 
+def get_attr_or_item(obj, name):
+    if hasattr(obj, name):
+        return getattr(obj, name)
+    return obj[name]
+
+
 def split(vector, on):
     mid = vector.index(on)
     left, right = vector[:mid], vector[mid+1:]

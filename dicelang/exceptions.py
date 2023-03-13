@@ -13,6 +13,10 @@ class DicelangError(DicelangException):
     pass
 
 
+class DuplicateArgument(DicelangError):
+    pass
+
+
 class LiteralError(DicelangError):
     pass
 

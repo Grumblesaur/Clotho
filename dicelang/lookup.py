@@ -1,5 +1,5 @@
 import math
-from utils import some
+from utils import some, get_attr_or_item
 from enum import Enum
 from typing import Any
 from exceptions import Impossible, BuiltinError
@@ -235,7 +235,7 @@ class Accessor:
     def get(self, from_object):
         match self:
             case self.__class__(AccessorType.ATTR, x):
-                return getattr(from_object, x)
+                return get_attr_or_item(from_object, x)
             case self.__class__(AccessorType.SLICE, x):
                 return from_object[x]
 
