@@ -3,6 +3,10 @@ class Spread:
         self.items = items
 
 
+def do_nothing():
+    pass
+
+
 class _Singleton:
     _instance = None
 

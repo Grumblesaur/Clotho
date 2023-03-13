@@ -4,6 +4,12 @@ from special import Spread
 from collections.abc import Iterable
 
 
+def split(vector, on):
+    mid = vector.index(on)
+    left, right = vector[:mid], vector[mid+1:]
+    return left, right
+
+
 def isordered(x):
     return isinstance(x, (tuple, list))
 

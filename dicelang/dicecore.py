@@ -1,4 +1,3 @@
-from typing import Union
 from random import randint
 from enum import Enum
 from exceptions import DiceError

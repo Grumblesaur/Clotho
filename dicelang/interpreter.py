@@ -1,24 +1,24 @@
-import dicecore
-import statistics
-import utils
+import re
+import itertools
 import random
 import operator
-import re
 import math
-import itertools
-import more_itertools
-from special import Undefined, Spread
-from call_stack import CallStack
+import dicecore
+import utils
+
 from collections.abc import Iterable, Sequence
 from typing import Hashable
-from numbers import (Real, Complex, Integral, Number)
+from numbers import (Real, Complex, Integral)
 from lark.visitors import Interpreter
-from math import log, log10, ceil
-from identifier import Lookup, Accessor, IdentType
+from lark import Token
+from special import Undefined, Spread
+from lookup import Lookup, Accessor, IdentType, CallStack
 from exceptions import (
-    LiteralError, SpreadError,
-    SubscriptError,
+    LiteralError, SpreadError, SubscriptError, Impossible,
+    AssignmentError, UnpackError,
 )
+
+OP_ASSIGN = Token('OP_ASSIGN', '=')
 
 
 class DicelangInterpreter(Interpreter):
@@ -54,7 +54,10 @@ class DicelangInterpreter(Interpreter):
         return results
 
     def start(self, tree):
-        return self.visit_children(tree)[-1]
+        self.call_stack.scope_push()
+        out = self.visit_children(tree)[-1]
+        self.call_stack.scope_pop()
+        return out
 
     def if_ternary(self, tree):
         if_action, _, condition, _, else_action = tree.children
@@ -110,7 +113,7 @@ class DicelangInterpreter(Interpreter):
 
     def logarithm(self, tree):
         base, _, antilogarithm = self.visit_children(tree)
-        return log(antilogarithm, base)
+        return math.log(antilogarithm, base)
 
     def unary_minus(self, tree):
         _, operand = self.visit_children(tree)
@@ -236,24 +239,8 @@ class DicelangInterpreter(Interpreter):
         elif isinstance(operand, Complex):
             return abs(operand)
         elif isinstance(operand, (Integral, Real)):
-            return ceil(log10(operand))
+            return math.ceil(math.log10(operand))
         return 0
-
-    def max_unary(self, tree):
-        _, operand = self.visit_children(tree)
-        return max(operand)
-
-    def min_unary(self, tree):
-        _, operand = self.visit_children(tree)
-        return min(operand)
-
-    def max_binary(self, tree):
-        a, _, b = self.visit_children(tree)
-        return max(a, b)
-
-    def min_binary(self, tree):
-        a, _, b = self.visit_children(tree)
-        return min(a, b)
 
     def coinflip(self, tree):
         a = tree.children[0]
@@ -279,41 +266,6 @@ class DicelangInterpreter(Interpreter):
             return random.sample(population, count)
         return [population] * count
 
-    def sorted(self, tree):
-        _, operand = self.visit_children(tree)
-        if isinstance(operand, Iterable):
-            return sorted(operand)
-        return operand
-
-    def shuffled(self, tree):
-        _, operand = self.visit_children(tree)
-        if isinstance(operand, Iterable):
-            new = list(operand)
-            random.shuffle(new)
-            return new
-        return operand
-
-    def statistics(self, tree):
-        _, operand = self.visit_children(tree)
-        if isinstance(operand, Number):
-            operand = [operand]
-        elif isinstance(operand, dict):
-            operand = list(operand.values())
-        out = {'average': statistics.mean(operand), 'minimum': min(operand), 'maximum': max(operand),
-               'median': statistics.median(operand), 'size': len(operand), 'sum': sum(operand)}
-        out['stddev'] = statistics.pstdev(operand, out['average'])
-        out['q1'] = statistics.median(x for x in operand if x < out['median'])
-        out['q3'] = statistics.median(x for x in operand if x > out['median'])
-        return out
-
-    def floor_or_flatten(self, tree):
-        operand = self.visit(tree.children[1])
-        if isinstance(operand, Iterable) and not isinstance(operand, str):
-            return list(more_itertools.collapse(operand))
-        if isinstance(operand, float):
-            return math.floor(operand)
-        return operand
-
     comparisons = {
         '==': operator.eq,
         '!=': operator.ne,
@@ -332,6 +284,10 @@ class DicelangInterpreter(Interpreter):
         return True
 
     identity_ops = {'is': lambda a, b: a is b, 'is not': lambda a, b: a is not b}
+
+    @staticmethod
+    def identity_op(tree):
+        return "is" if len(tree.children) == 1 else "is not"
 
     def identity(self, tree):
         children = self.visit_children(tree)
@@ -399,7 +355,7 @@ class DicelangInterpreter(Interpreter):
 
     @staticmethod
     def string(tree):
-        return eval(tree.children[0].value)
+        return eval(tree.children[0])
 
     @staticmethod
     def boolean(tree):
@@ -415,10 +371,8 @@ class DicelangInterpreter(Interpreter):
         items, getter = self.visit_children(tree)
         if not hasattr(items, '__getitem__'):
             raise SubscriptError(f'{items.__class__.__name__} cannot be keyed/indexed')
-
         if not isinstance(getter, Hashable) and not isinstance(getter, slice):
             raise SubscriptError(f'{getter.__class__.__name__} cannot be used to key/index {items.__class__.__name__}')
-
         return items[getter]
 
     @staticmethod
@@ -512,7 +466,7 @@ class DicelangInterpreter(Interpreter):
             pairs[key] = value
         return pairs
 
-    def retrieval(self, tree):
+    def access(self, tree):
         name, *subscripts = self.visit_children(tree)
         accessors = []
         for sub in subscripts:
@@ -531,14 +485,19 @@ class DicelangInterpreter(Interpreter):
             case (IdentType.PUBLIC, x):
                 action = Lookup.public
             case _:
-                raise NotImplementedError(f'impossible retrieval: {name!r} {subscripts!r}')
+                raise Impossible(f"can't retrieve: {name!r} {subscripts!r}")
 
-        lookup = action(self.call_stack, x, *accessors)
-        return lookup.get()
+        return action(self.call_stack, x, *accessors)
+
+    def retrieval(self, tree):
+        return self.visit(tree.children[0]).get()
 
     def function_call(self, tree):
-        callee, *arguments = self.visit_children(tree)
+        callee, arguments = self.visit_children(tree)
         return callee(*arguments)
+
+    def arguments(self, tree):
+        return self.visit_children(tree)
 
     @staticmethod
     def scoped_identifier(tree):
@@ -556,6 +515,32 @@ class DicelangInterpreter(Interpreter):
     def public_identifier(tree):
         return IdentType.PUBLIC, str(tree.children[0])
 
+    def assignment_single(self, tree):
+        lval, _, rval = self.visit_children(tree)
+        return lval.put(rval)
+
+    def assignment_multi(self, tree):
+        lvals, rvals = utils.split(self.visit_children(tree), on=OP_ASSIGN)
+        if (llen := len(lvals)) > (rlen := len(rvals)):
+            raise AssignmentError(f"more assignment targets {llen} than values {rlen}")
+        elif llen < rlen:
+            raise AssignmentError(f"fewer assignment targets {llen} than values {rlen}")
+        return [lval.put(rval) for lval, rval in zip(lvals, rvals)]
+
+    def assignment_unpack_left(self, tree):
+        operands = self.visit_children(tree)
+        lvals, rval = operands[1:-2], operands[-1]
+        if not utils.isordered(rval):
+            raise UnpackError(f"can't unpack from {type(rval).__name__}")
+        if len(rval) < len(lvals) - 1:
+            raise UnpackError(f"not enough values to fill assignment targets")
+        starred, individual = lvals[0], lvals[1:]
+        start = len(rval)-1
+        end = start - (ilen := len(individual))
+        backwards = [individual[-j].put(rval[i]) for i, j in zip(range(start, end, -1), range(1, ilen+1))]
+        packed = starred.put(rval[:end+1])
+        return tuple(itertools.chain([packed], reversed(backwards)))
+
     def __default__(self, tree):
         return self.visit(tree.children[0])
 
@@ -563,7 +548,9 @@ class DicelangInterpreter(Interpreter):
 if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
-    tests = "set('abc'); math.sin(math.pi / 2); frozenset([1, 2, 3]); math".split(';')
+    tests = [
+        '"a\\nb"',
+    ]
     for t in tests:
         ast = parser.parse(t)
         output = di.visit(ast)

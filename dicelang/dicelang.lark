@@ -6,11 +6,6 @@ OP_COIN: "!"
 OP_RS: "@"
 OP_RSR: "@!"
 OP_LEN: "#"
-OP_MAX: "!>"
-OP_MIN: "!<"
-OP_STAT: "!:"
-OP_SHUFFLE: "><"
-OP_SORT: "<>"
 OP_ADD: "+"
 OP_SUB: "-"
 OP_CAT: "$"
@@ -71,35 +66,19 @@ KW_TO: "to"
 KW_THROUGH: "through" | "thru"
 KW_BEGIN: "begin"
 KW_END: "end"
-KW_REPEAT: "repeat"
+KW_REPEAT: "repeat" | "rep"
 KW_AND: "and"
 KW_OR: "or"
 KW_XOR: "xor"
 KW_MY: "my"
 KW_OUR: "our"
-KW_PUB: "pub"
+KW_PUB: "public" | "pub"
 KW_CORE: "core"
 KW_LIKE: "like"
 KW_SEEK: "seek"
 KW_IS: /\bis\b/
 KW_NOT: /\bnot\b/
 identity_op: KW_IS | KW_IS KW_NOT
-
-FN_ABS: "abs"
-FN_SPLIT: "split"
-FN_JOIN: "join"
-FN_UPPER: "uppercase"
-FN_LOWER: "lowercase"
-FN_HEX: "hex"
-FN_BIN: "bin"
-FN_STR: "str"
-FN_INT: "int"
-FN_SET: "set"
-FN_DICT: "dict"
-FN_LIST: "list"
-FN_FLOAT: "float"
-FN_BOOL: "bool"
-FN_EXECUTE: "execute"
 
 start: expr (";" expr)* ";"?
 
@@ -112,9 +91,6 @@ conditional: KW_IF expr KW_THEN body -> if_block
 iteration: KW_WHILE expr KW_DO body -> while_loop
          | KW_DO body KW_WHILE expr -> do_while_loop
          | KW_FOR scoped_identifier KW_DO body -> for_loop
-
-lvalue: identifier subscript_chain -> lvalue_field
-      | identifier -> lvalue_name
 
 rvalue: expr
 subscript_chain: subscript+
@@ -174,11 +150,11 @@ and: and KW_AND not -> boolean_and
 not: KW_NOT comparison -> boolean_not
    | comparison
 
-comparison: bitwise_and
-          | bitwise_and (OP_COMPARE bitwise_and)+ -> compare_math
-          | bitwise_and (identity_op bitwise_and)+ -> identity
-          | bitwise_and KW_IN bitwise_and -> member_of
-          | bitwise_and KW_NOT KW_IN bitwise_and -> member_of_negated
+comparison: bitwise_or
+          | bitwise_or (OP_COMPARE bitwise_and)+ -> compare_math
+          | bitwise_or (identity_op bitwise_and)+ -> identity
+          | bitwise_or KW_IN bitwise_and -> member_of
+          | bitwise_or KW_NOT KW_IN bitwise_and -> member_of_negated
 
 bitwise_or: bitwise_or OP_BIT_OR bitwise_xor -> bit_or
           | bitwise_xor
@@ -213,18 +189,11 @@ power: special OP_EXP power -> exponent
 
 special: OP_BIT_AND dice -> sum_or_join
        | OP_LEN dice -> len_or_mag
-       | OP_MAX dice -> max_unary
-       | OP_MIN dice -> min_unary
-       | special OP_MAX dice -> max_binary
-       | special OP_MIN dice -> min_binary
        | special OP_COIN dice -> coinflip
        | OP_RS dice -> random_selection_unary
        | special OP_RS dice -> random_selection_binary
        | OP_RSR dice -> random_selection_replacing_unary
        | special OP_RSR dice -> random_selection_replacing_binary
-       | OP_SORT dice -> sorted
-       | OP_SHUFFLE dice -> shuffled
-       | OP_STAT dice -> statistics
        | dice
 
 dice: OP_DIE primary -> die_unary
@@ -239,11 +208,13 @@ dice: OP_DIE primary -> die_unary
 
 primary: atom
        | retrieval
-       | primary "(" arguments? ")" -> function_call
+       | primary "(" arguments* ")" -> function_call
        | atom KW_SEEK primary -> regex_search
        | atom KW_LIKE primary -> regex_match
 
-retrieval: identifier subscript_chain?
+access: identifier subscript_chain?
+retrieval: access
+lvalue: access
 
 arguments: spread ("," spread)* ","?
 
@@ -256,7 +227,6 @@ atom: number
     | dict
     | set
     | "(" expr ")" -> priority
-    | OP_BIT_OR expr OP_BIT_OR -> floor_or_flatten
 
 number: LIT_INT_DEC | LIT_INT_HEX | LIT_REAL | LIT_COMPLEX
       | LIT_NAN | LIT_INF
