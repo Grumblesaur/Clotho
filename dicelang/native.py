@@ -3,6 +3,41 @@ import statistics
 import more_itertools
 
 
+class PrintQueue:
+    _instance = None
+
+    def __new__(cls, queue=None):
+        if not isinstance(cls._instance, cls):
+            cls._instance = object.__new__(cls)
+        cls._instance.queued = queue or []
+        return cls._instance
+
+    def _print_kernel(self, *args, sep=' ', end='\n'):
+        msg = sep.join(str(a) for a in args) + end
+        self.queued.append(msg)
+        return msg
+
+    def print(self, *args):
+        return self._print_kernel(*args, end='')
+
+    def print0(self, *args):
+        return self._print_kernel(*args, sep='', end='')
+
+    def println(self, *args):
+        return self._print_kernel(*args)
+
+    def println0(self, *args):
+        return self._print_kernel(*args, sep='')
+
+    def flush(self):
+        flushed = ''.join(self.queued)
+        self.queued.clear()
+        return flushed
+
+
+PrintQueue = PrintQueue()
+
+
 def shuffled(iterable):
     new = list(iterable)
     shuffle(new)

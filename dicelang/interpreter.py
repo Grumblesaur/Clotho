@@ -1,4 +1,3 @@
-import re
 import itertools
 import random
 import operator
@@ -17,7 +16,7 @@ from lookup import Lookup, Accessor, IdentType, CallStack
 from user_function import UserFunction
 from functools import partialmethod
 from exceptions import (
-    LiteralError, SpreadError, SubscriptError, Impossible,
+    BadLiteral, SpreadError, InvalidSubscript, Impossible,
     AssignmentError, UnpackError,
 )
 
@@ -79,7 +78,7 @@ class DicelangInterpreter(Interpreter):
         return [self.visit(tree.children[0]) for _ in range(repeats)]
 
     def die_unary(self, tree):
-        _, sides = self.visit_children(tree)
+        _, sides = self.visit(tree.children[0])
         return dicecore.keep_all(1, sides)
 
     def die_binary(self, tree):
@@ -95,7 +94,7 @@ class DicelangInterpreter(Interpreter):
         return dicecore.keep_lowest(dice, sides, keep)
 
     def roll_unary(self, tree):
-        _, sides = self.visit_children(tree)
+        _, sides = self.visit(tree.children[0])
         return dicecore.keep_all(1, sides, as_sum=False)
 
     def roll_binary(self, tree):
@@ -324,16 +323,6 @@ class DicelangInterpreter(Interpreter):
     def boolean_not(self, tree):
         return not self.visit(tree.children[1])
 
-    def regex_search(self, tree):
-        subject, _, pattern = self.visit_children(tree)
-        if match := re.search(pattern, subject):
-            return {'start': match.start(), 'end': match.end()}
-        return {}
-
-    def regex_match(self, tree):
-        subject, _, pattern = self.visit_children(tree)
-        return bool(re.match(pattern, subject))
-
     @staticmethod
     def number(tree):
         match (token := tree.children[0]).type:
@@ -350,11 +339,17 @@ class DicelangInterpreter(Interpreter):
             case 'LIT_INF':
                 return math.inf
             case _:
-                raise LiteralError(f'unrecognized number: {token!r}')
+                raise BadLiteral(f'unrecognized number: {token!r}')
 
     @staticmethod
     def string(tree):
-        return eval(tree.children[0])
+        match (literal := tree.children[0]).type:
+            case 'LIT_STRING_DOUBLE' | 'LIT_STRING_SINGLE':
+                return eval(literal)
+            case 'LIT_RAW_DOUBLE' | 'LIT_RAW_SINGLE':
+                return literal.value[2:-1]
+            case _:
+                raise Impossible("unhandled string literal")
 
     @staticmethod
     def boolean(tree):
@@ -364,14 +359,14 @@ class DicelangInterpreter(Interpreter):
             case 'LIT_FALSE':
                 return False
             case _:
-                raise LiteralError(f'unrecognized boolean: {token!r}')
+                raise BadLiteral(f'unrecognized boolean: {token!r}')
 
     def sliced(self, tree):
         items, getter = self.visit_children(tree)
         if not hasattr(items, '__getitem__'):
-            raise SubscriptError(f'{items.__class__.__name__} cannot be keyed/indexed')
+            raise InvalidSubscript(f'{type(items).__name__} cannot be keyed/indexed')
         if not isinstance(getter, Hashable) and not isinstance(getter, slice):
-            raise SubscriptError(f'{getter.__class__.__name__} cannot be used to key/index {items.__class__.__name__}')
+            raise InvalidSubscript(f'{type(getter).__name__} cannot be used to key/index {type(items).__name__}')
         return items[getter]
 
     @staticmethod
@@ -562,9 +557,8 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        '"beep boop".split().__len__()',
-        'x = "beep boop"; x.split().__len__()',
-        'y = {"a": 1}; y.a + y["a"]',
+        'p = R"\\w+"; q = "beans"; regex.match(p, q)',
+        'ex = {"foo": 1, "bar": 2}; ex.foo'
     ]
     for t in tests:
         ast = parser.parse(t)

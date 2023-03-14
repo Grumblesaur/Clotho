@@ -19,7 +19,7 @@ class UserFunction:
         self.params = params
         self.closed_over = closed_over or [{}]
 
-    def __deepcopy__(self, memodict={}):
+    def __deepcopy__(self, *args, **kwargs):
         newtree = type(self.code)(deepcopy(self.code.data), deepcopy(self.code.children))
         return self.from_ast(newtree, self.params[:], deepcopy(self.closed_over))
 
@@ -29,3 +29,6 @@ class UserFunction:
         for p in sorted(self.params):
             if p == last:
                 raise DuplicateArgument(repr(p))
+
+    def __call__(self, interpreter, *args):
+        pass

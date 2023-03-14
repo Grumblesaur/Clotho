@@ -1,5 +1,5 @@
-OP_DIE: "d"
-OP_ROLL: "r"
+OP_DIE: /\bd\b/
+OP_ROLL: /\br\b/
 OP_HIGH: "h"
 OP_LOW: "l"
 OP_COIN: "!"
@@ -74,8 +74,6 @@ KW_MY: "my"
 KW_OUR: "our"
 KW_PUB: "public" | "pub"
 KW_CORE: "core"
-KW_LIKE: "like"
-KW_SEEK: "seek"
 KW_IS: /\bis\b/
 KW_NOT: /\bnot\b/
 identity_op: KW_IS | KW_IS KW_NOT
@@ -194,9 +192,9 @@ special: OP_BIT_AND dice -> sum_or_join
        | special OP_RSR dice -> random_selection_replacing_binary
        | dice
 
-dice: OP_DIE primary -> die_unary
+dice: OP_DIE dice -> die_unary
     | dice OP_ROLL primary -> roll_binary
-    | OP_ROLL primary -> roll_unary
+    | OP_ROLL dice -> roll_unary
     | dice OP_DIE primary -> die_binary
     | dice OP_ROLL primary OP_HIGH primary -> roll_ternary_high
     | dice OP_ROLL primary OP_LOW primary -> roll_ternary_high
@@ -208,8 +206,6 @@ primary: atom
        | retrieval
        | primary subscript_chain -> retrieval_atomic
        | primary "(" arguments* ")" -> function_call
-       | atom KW_SEEK primary -> regex_search
-       | atom KW_LIKE primary -> regex_match
 
 access: identifier subscript_chain?
 retrieval: access
@@ -232,9 +228,12 @@ number: LIT_INT_DEC | LIT_INT_HEX | LIT_REAL | LIT_COMPLEX
 LIT_NAN: "nan"
 LIT_INF: "inf"
 
-string: LIT_STRING_DOUBLE | LIT_STRING_SINGLE
+string: LIT_STRING_DOUBLE | LIT_STRING_SINGLE | LIT_RAW_SINGLE | LIT_RAW_DOUBLE
 boolean: LIT_TRUE | LIT_FALSE
 undefined: LIT_UNDEFINED
+spread: "*" expr -> spread_unpackable
+          | expr -> spread_single
+
 list: "[" "]" -> list_empty
     | "[" spread ("," spread)* ","? "]" -> list_populated
     | "[" expr KW_TO expr "]" -> list_range
@@ -246,13 +245,10 @@ tuple: "(" spread "," ")" -> tuple_single
      | "(" spread ("," spread)+ ","? ")" -> tuple_multi
      | "(" ")" -> tuple_empty
 
-spread: "*" expr -> spread_unpackable
-          | expr -> spread_single
+set: "{" spread ("," spread)* "}" -> set_populated
 
 dict: "{" "}" -> dict_empty
     | "{" kv_pair ("," kv_pair)* ","? "}" -> dict_populated
-
-set: "{" spread ("," spread)* "}" -> set_populated
 
 kv_pair: expr ":" expr
 
@@ -265,7 +261,7 @@ identifier: scoped_identifier
           | server_identifier
           | public_identifier
 
-%import common.ESCAPED_STRING -> LIT_STRING_DOUBLE
+%import common.ESCAPED_STRING
 %import common._STRING_ESC_INNER
 %import common.NUMBER -> LIT_REAL
 %import common.INT -> LIT_INT_DEC
@@ -276,6 +272,9 @@ LIT_UNDEFINED: "Undefined"
 LIT_COMPLEX: LIT_REAL ("j"|"J")
 LIT_INT_HEX: "0x" HEXDIGIT+
 LIT_STRING_SINGLE: "'" _STRING_ESC_INNER "'"
+LIT_RAW_SINGLE: /\bR\b/ "'" _STRING_ESC_INNER "'"
+LIT_RAW_DOUBLE: /\bR\b/ ESCAPED_STRING
+LIT_STRING_DOUBLE: ESCAPED_STRING
 
 %import common.CNAME -> IDENT
 %ignore "?" /.*/

@@ -1,6 +1,6 @@
 from random import randint
 from enum import Enum
-from exceptions import DiceError
+from exceptions import ImpossibleDice
 
 
 class Keep(Enum):
@@ -15,7 +15,7 @@ def kernel(dice: int, sides: int, mode=Keep.ALL, kept=1, as_sum=True):
         return (sum if as_sum else list)(rolls)
     rolls = sorted(rolls)
     if not (1 <= kept < len(rolls)):
-        raise DiceError(f'tried to keep {kept} dice instead of [1, {dice}] dice.')
+        raise ImpossibleDice(f'tried to keep {kept} dice instead of [1, {dice}] dice.')
     results = rolls[-kept:] if mode == Keep.HIGH else rolls[:kept]
     return sum(results) if as_sum else results
 

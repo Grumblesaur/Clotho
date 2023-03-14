@@ -1,11 +1,12 @@
 import math
-from utils import some, get_attr_or_item
-from enum import Enum
-from typing import Any
-from exceptions import Impossible, BuiltinError
 import copy
-from exceptions import ScopeError
+import re
+from utils import some, get_attr_or_item
+from enum import Enum, IntEnum
+from typing import Any
+from exceptions import BuiltinError, MissingScope
 from native import shuffled, stats, flatten
+from random import random as rand
 
 NotLocal = object()
 NotBuiltin = object()
@@ -78,9 +79,9 @@ class CallStack:
             self.frames[self.frame].pop()
         except IndexError as e:
             if 'pop from empty list' in str(e):
-                raise ScopeError("Can't pop scope from empty stack frame.")
+                raise MissingScope("Can't pop scope from empty stack frame.")
             else:
-                raise ScopeError("Can't pop scope from global stack frame.")
+                raise MissingScope("Can't pop scope from global stack frame.")
         except KeyError:
             self.anonymous.pop()
         return self.frame
@@ -91,23 +92,27 @@ class CallStack:
             return self.frames[self.frame][-1]
         except IndexError as e:
             if 'list index out of range' in str(e):
-                raise ScopeError("Can't get scope from empty stack frame.")
+                raise MissingScope("Can't get scope from empty stack frame.")
             else:
-                raise ScopeError("Can't get scope from global stack frame.")
+                raise MissingScope("Can't get scope from global stack frame.")
         except KeyError:
             return self.anonymous[-1]
 
     def get(self, key):
-        if (frame := self.frame_top) is NotLocal and self.anonymous:
-            for scope in reversed(self.anonymous):
-                if key in scope:
-                    return scope[key]
+        if (frame := self.frame_top) is NotLocal:
+            if self.anonymous:
+                for scope in reversed(self.anonymous):
+                    if key in scope:
+                        return scope[key]
+            return NotLocal
+
         for scope in reversed(frame):
             if key in scope:
                 return scope[key]
-        for scope in reversed(self.closure[-1]):
-            if key in scope:
-                return scope[key]
+        if self.closure:
+            for scope in reversed(self.closure[-1]):
+                if key in scope:
+                    return scope[key]
         return NotLocal
 
     def put(self, key, value):
@@ -151,7 +156,7 @@ class AccessorType(Enum):
     SLICE = 1
 
 
-class IdentType(Enum):
+class IdentType(IntEnum):
     SCOPED = 0
     USER = 1
     SERVER = 2
@@ -175,6 +180,8 @@ class Module:
         'shuffled': shuffled,
         'stats': stats,
         'flatten': flatten,
+        'rand': rand,
+        'regex': re,
     }
 
     def __new__(cls, *accessors):
@@ -323,7 +330,6 @@ class Lookup:
         return self.call_stack.datastore.put(self.itype, value, self.name, *self.accessors)
 
     def drop(self):
-        # TODO: raise error if dropping a builtin if SCOPED
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             raise BuiltinError.from_instance(maybe_builtin, "delete")
         elif self.itype == IdentType.SCOPED:
@@ -355,23 +361,22 @@ class Temporary(AbstractDatastore):
         return f'self.table[{int(itype)}][{name!r}]' + ''.join(
             f'.{acc!s}' if acc.atype == AccessorType.ATTR else f'[{acc!s}]' for acc in accessors)
 
-    def get(self, itype, name, *accessors, err="Scoped variable made it to datastore get."):
-        if itype == IdentType.SCOPED:
-            raise Impossible("Scoped variable made it to datastore get.")
+    def get(self, itype, name, *accessors):
+        itype = itype or IdentType.SERVER
         target = self.table[itype][name]
         for acc in accessors:
             target = acc.get(target)
         return target
 
     def put(self, itype, value, name, *accessors):
-        if itype == IdentType.SCOPED:
-            raise Impossible("Scoped variable made it to datastore put.")
+        itype = itype or IdentType.SERVER
         insert = self.mutation_target(itype, name, *accessors) + f' = {value!r}'
         exec(insert)
         return value
 
     def drop(self, itype, name, *accessors):
-        out = self.get(itype, name, *accessors, err="Scoped variable made it to datastore drop.")
+        itype = itype or IdentType.SERVER
+        out = self.get(itype, name, *accessors)
         delete = 'del self.mutation_target(itype, name, *accessors)'
         exec(delete)
         return out
