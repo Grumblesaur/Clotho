@@ -558,7 +558,9 @@ if __name__ == '__main__':
     di = DicelangInterpreter()
     tests = [
         'p = R"\\w+"; q = "beans"; regex.match(p, q)',
-        'ex = {"foo": 1, "bar": 2}; ex.foo'
+        'ex = {"foo": 1, "bar": 2}; ex.foo',
+        'builtins()',
+        'cmath.phase(3.2-2.9j)'
     ]
     for t in tests:
         ast = parser.parse(t)

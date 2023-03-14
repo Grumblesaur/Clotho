@@ -2,12 +2,17 @@ from functools import reduce
 from operator import add
 from special import Spread
 from collections.abc import Iterable
+from exceptions import InvalidSubscript
 
 
 def get_attr_or_item(obj, name):
     if hasattr(obj, name):
         return getattr(obj, name)
-    return obj[name]
+    try:
+        out = obj[name]
+    except (TypeError, KeyError):
+        raise InvalidSubscript(f'builtin object or module has no attribute, key, or index {name!r}')
+    return out
 
 
 def split(vector, on):

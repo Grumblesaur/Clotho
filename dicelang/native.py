@@ -57,3 +57,8 @@ def stats(iterable):
 
 def flatten(items):
     return list(more_itertools.collapse(items))
+
+
+def lzip(*iterables):
+    return list(zip(*iterables))
+
