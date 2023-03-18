@@ -61,4 +61,3 @@ def flatten(items):
 
 def lzip(*iterables):
     return list(zip(*iterables))
-

@@ -6,34 +6,45 @@ class DicelangException(Exception):
     pass
 
 
+Empty = object()
+
+
 class DicelangSignal(DicelangException):
     """Branch of the exception hierarchy for flow control. These
     exceptions can optionally capture a value, which will be used
     in certain contexts."""
-    def __init__(self, value=None):
+    def __init__(self, value=Empty):
         self.value = value
 
     def __bool__(self):
-        return self.value is not None
+        return self.value is not Empty
 
-    def get(self):
-        return self.value
+    def unwrap(self):
+        return self.value if self else special.Undefined
 
 
-class BreakSignal(DicelangSignal):
+class Break(DicelangSignal):
     pass
 
 
-class ContinueSignal(DicelangSignal):
+class Continue(DicelangSignal):
     pass
 
 
-class ReturnSignal(DicelangSignal):
+class Return(DicelangSignal):
+    pass
+
+
+class Terminate(DicelangSignal):
     pass
 
 
 class ProgrammingError(DicelangException):
     """Indicates a bug or unhandled case."""
+    pass
+
+
+class IllegalSignal(ProgrammingError):
     pass
 
 

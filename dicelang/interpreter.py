@@ -11,26 +11,35 @@ from collections.abc import Iterable, Sequence
 from typing import Hashable
 from numbers import (Real, Complex, Integral)
 from lark.visitors import Interpreter
-from lark import Token
 from special import Undefined, Spread
 from lookup import Lookup, Accessor, IdentType, CallStack
 from user_function import UserFunction
 from functools import partialmethod
 from exceptions import (
-    BadLiteral, SpreadError, InvalidSubscript, Impossible,
-    AssignmentError, UnpackError,
+    BadLiteral, SpreadError, InvalidSubscript, Impossible, Empty,
+    AssignmentError, UnpackError, Break, Continue, Return, Terminate,
+    DicelangSignal, IllegalSignal
 )
-
-OP_ASSIGN = Token('OP_ASSIGN', '=')
 
 
 class DicelangInterpreter(Interpreter):
     def __init__(self, call_stack=None):
         self.call_stack = call_stack or CallStack()
 
+    def execute(self, tree):
+        try:
+            result = self.visit(tree)
+        except Terminate as term:
+            result = term.unwrap()
+        except DicelangSignal as e:
+            raise IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
+        finally:
+            self.call_stack.reset()
+        return result
+
     def block(self, tree):
         self.call_stack.scope_push()
-        result = self.visit_children(tree)[-1]
+        result = self.visit_children(tree)[-2]
         self.call_stack.scope_pop()
         return result
 
@@ -45,15 +54,59 @@ class DicelangInterpreter(Interpreter):
     def while_loop(self, tree):
         _, condition, _, body = tree.children
         results = []
-        while self.visit(condition):
-            results.append(self.visit(body))
+        try:
+            while self.visit(condition):
+                try:
+                    results.append(self.visit(body))
+                except Continue as c:
+                    if c:
+                        results.append(c)
+        except Break as b:
+            if b:
+                results.append(b.value)
         return results
 
     def do_while_loop(self, tree):
         _, body, _, condition = tree.children
         results = [self.visit(body)]
-        while self.visit(condition):
-            results.append(self.visit(body))
+        try:
+            while self.visit(condition):
+                try:
+                    results.append(self.visit(body))
+                except Continue as c:
+                    if c:
+                        results.append(c.value)
+        except Break as b:
+            if b:
+                results.append(b.value)
+        return results
+
+    def for_loop(self, tree):
+        _, ident, _, iterable, _, body = tree.children
+        match name := self.visit(ident):
+            case (IdentType.SCOPED, x):
+                action = Lookup.scoped
+            case (IdentType.USER, x):
+                action = Lookup.server
+            case (IdentType.SERVER, x):
+                action = Lookup.server
+            case (IdentType.PUBLIC, x):
+                action = Lookup.public
+            case _:
+                raise Impossible(f"can't assign for loop variable {name}")
+        loop_variable = action(self.call_stack, x)
+        results = []
+        try:
+            for x in self.visit(iterable):
+                loop_variable.put(x)
+                try:
+                    results.append(self.visit(body))
+                except Continue as c:
+                    if c:
+                        results.append(c.value)
+        except Break as b:
+            if b:
+                results.append(b.value)
         return results
 
     def start(self, tree):
@@ -127,7 +180,7 @@ class DicelangInterpreter(Interpreter):
         return operand
 
     def multiplication(self, tree):
-        multiplier, _, multiplicand = self.visit_children(tree)
+        multiplier, multiplicand = self.visit_children(tree)
         if isinstance(multiplier, int) and isinstance(multiplicand, Sequence):
             direction = utils.sign(multiplier)
             return multiplicand[::direction] * multiplier
@@ -137,7 +190,7 @@ class DicelangInterpreter(Interpreter):
         return multiplier * multiplicand
 
     def division(self, tree):
-        dividend, _, divisor = self.visit_children(tree)
+        dividend, divisor = self.visit_children(tree)
         if isinstance(dividend, (list, tuple)):
             if not isinstance(divisor, str) and isinstance(divisor, Iterable):
                 return type(dividend)(x for x in dividend if x not in divisor)
@@ -148,7 +201,7 @@ class DicelangInterpreter(Interpreter):
         return dividend / divisor
 
     def integer_division(self, tree):
-        dividend, _, divisor = self.visit_children(tree)
+        dividend, divisor = self.visit_children(tree)
         return dividend // divisor
 
     def left_shift(self, tree):
@@ -204,8 +257,7 @@ class DicelangInterpreter(Interpreter):
         return minuend - subtrahend
 
     def catenation(self, tree):
-        high_order, low_order = self.visit_children(tree)
-        return int(f'{int(high_order)}{int(low_order)}')
+        return ops.cat(*self.visit_children(tree))
 
     def bit_and(self, tree):
         left, right = self.visit_children(tree)
@@ -556,7 +608,7 @@ class DicelangInterpreter(Interpreter):
         return lval.put(rval)
 
     def assignment_multi(self, tree):
-        lvals, rvals = utils.split(self.visit_children(tree), on=OP_ASSIGN)
+        lvals, rvals = utils.split(self.visit_children(tree), "=")
         if (llen := len(lvals)) > (rlen := len(rvals)):
             raise AssignmentError(f"more assignment targets {llen} than values {rlen}")
         elif llen < rlen:
@@ -618,14 +670,53 @@ class DicelangInterpreter(Interpreter):
     def __default__(self, tree):
         return self.visit(tree.children[0])
 
+    def flow(self, tree):
+        evaluated = self.visit_children(tree)
+        try:
+            keyword, value = evaluated
+        except ValueError:
+            keyword, value = evaluated, Empty
+        match sig := keyword.type:
+            case 'KW_CONTINUE':
+                raise Continue(value)
+            case 'KW_BREAK':
+                raise Break(value)
+            case 'KW_RETURN':
+                raise Return(value)
+            case 'KW_TERMINATE':
+                raise Terminate(value)
+            case _:
+                raise Impossible(f'unknown signal: {sig}')
+
 
 if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        'a = 1; a <<= 2; a',
+        '''f = (x, y) -> begin
+            if x is 0 then begin
+                return y
+            end;
+            (x, y)
+        end;
+        [f(0, 10), f(10, 10)]
+        ''',
+        "squares = for x in [1 through 10] do x * x; sum(squares)",
+        """break_test = for x in [1 through 10] do begin
+            if x == 5 then begin
+                continue 0
+            end else if x == 9 then begin
+                break 0
+            end else begin
+                x
+            end;
+        end;""",
+        """infinite_loop = () -> begin
+            while True do terminate 999;
+        end; infinite_loop();""",
+        """Undefined1 = 10""",
     ]
     for t in tests:
         ast = parser.parse(t)
-        output = di.visit(ast)
+        output = di.execute(ast)
         print(utils.serialize(output))

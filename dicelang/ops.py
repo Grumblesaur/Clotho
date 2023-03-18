@@ -14,4 +14,4 @@ def ior(x, y):
 
 
 def ixor(x, y):
-    return x and not y or not x and y
+    return x and not y or y and not x

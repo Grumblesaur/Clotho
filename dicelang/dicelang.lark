@@ -21,23 +21,26 @@ OP_AUGMENT: OP_AUG_ADD | OP_AUG_SUB | OP_AUG_CAT | OP_AUG_MUL
           | OP_AUG_BIT_OR | OP_AUG_BIT_XOR | OP_AUG_AND | OP_AUG_OR
           | OP_AUG_XOR
 
-KW_IF: "if"
-KW_THEN: "then"
-KW_ELSE: "else"
-KW_DEL: "del"
-KW_WHILE: "while"
-KW_DO: "do"
-KW_FOR: "for"
-KW_IN: "in"
-KW_BY: "by"
-KW_TO: "to"
-KW_THROUGH: "through" | "thru"
-KW_BEGIN: "begin"
-KW_END: "end"
-KW_MY: "my"
-KW_OUR: "our"
-KW_PUB: "public" | "pub"
-KW_CORE: "core"
+KW_IF: /\bif\b/
+KW_THEN: /\bthen\b/
+KW_ELSE: /\belse\b/
+KW_DEL: /\bdel\b/
+KW_WHILE: /\bwhile\b/
+KW_DO: /\bdo\b/
+KW_FOR: /\bfor\b/
+KW_IN: /\bin\b/
+KW_BY: /\bby\b/
+KW_TO: /\bto\b/
+KW_BREAK: /\bbreak\b/
+KW_CONTINUE: /\bcontinue\b/
+KW_RETURN: /\breturn\b/
+KW_TERMINATE: /\bterminate\b/
+KW_THROUGH: /\bthrough\b/ | /\bthru\b/
+KW_BEGIN: /\bbegin\b/
+KW_END: /\bend\b/
+KW_MY: /\bmy\b/
+KW_OUR: /\bour\b/
+KW_PUB: /\bpub(lic)?\b/
 KW_IS: /\bis\b/
 KW_NOT: /\bnot\b/
 identity_op: KW_IS | KW_IS KW_NOT
@@ -52,7 +55,9 @@ conditional: KW_IF expr KW_THEN body -> if_block
 
 iteration: KW_WHILE expr KW_DO body -> while_loop
          | KW_DO body KW_WHILE expr -> do_while_loop
-         | KW_FOR scoped_identifier KW_DO body -> for_loop
+         | KW_FOR identifier KW_IN expr KW_DO body -> for_loop
+
+flow: (KW_CONTINUE | KW_BREAK | KW_RETURN | KW_TERMINATE) expr?
 
 rvalue: expr
 subscript_chain: subscript+
@@ -71,6 +76,7 @@ slice: expr -> index_or_key
 
 expr: assignment
     | function
+    | flow
 
 assignment: lvalue OP_ASSIGN rvalue -> assignment_single
           | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue ("," rvalue)+ ","? -> assignment_multi
@@ -189,8 +195,8 @@ atom: number
     | "(" expr ")" -> priority
 
 number: LIT_INT_DEC | LIT_INT_HEX | LIT_REAL | LIT_COMPLEX | LIT_NAN | LIT_INF
-LIT_NAN: "nan"
-LIT_INF: "inf"
+LIT_NAN: /\bnan\b/
+LIT_INF: /\binf\b/
 
 string: LIT_STRING_DOUBLE | LIT_STRING_SINGLE | LIT_RAW_SINGLE | LIT_RAW_DOUBLE
 boolean: LIT_TRUE | LIT_FALSE
@@ -230,9 +236,9 @@ identifier: scoped_identifier
 %import common.NUMBER -> LIT_REAL
 %import common.INT -> LIT_INT_DEC
 %import common.HEXDIGIT
-LIT_TRUE: "True"
-LIT_FALSE: "False"
-LIT_UNDEFINED: "Undefined"
+LIT_TRUE: /\bTrue\b/
+LIT_FALSE: /\bFalse\b/
+LIT_UNDEFINED: /\bUndefined\b/
 LIT_COMPLEX: LIT_REAL ("j"|"J")
 LIT_INT_HEX: "0x" HEXDIGIT+
 LIT_STRING_SINGLE: "'" _STRING_ESC_INNER "'"

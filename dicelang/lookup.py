@@ -21,6 +21,12 @@ class CallStack:
         self.anonymous = []
         self.closure = []
 
+    def reset(self):
+        self.frame = 0
+        self.frames.clear()
+        self.anonymous.clear()
+        self.closure.clear()
+
     def function_push(self, arguments: dict, closed: dict):
         self.frame_push()
         self.scope_push(arguments)

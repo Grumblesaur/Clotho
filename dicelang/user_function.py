@@ -1,6 +1,6 @@
 from parser import parser
 from special import Undefined
-from exceptions import DuplicateParameter, BadArguments
+from exceptions import DuplicateParameter, BadArguments, Return, Break, Continue, IllegalSignal
 from copy import deepcopy
 
 
@@ -59,6 +59,11 @@ class UserFunction:
         arguments = {'this': self.this}
         arguments.update(self.marshal(*args))
         interpreter.call_stack.function_push(arguments, self.closed_over)
-        out = interpreter.visit(self.code.children[0])
+        try:
+            out = interpreter.visit(self.code.children[0])
+        except Return as rs:
+            out = rs.unwrap()
+        except (Break, Continue) as e:
+            raise IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
         interpreter.call_stack.function_pop()
         return out
