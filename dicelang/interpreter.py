@@ -715,6 +715,8 @@ if __name__ == '__main__':
             while True do terminate 999;
         end; infinite_loop();""",
         """Undefined1 = 10""",
+        "shuffled([2 through 50 by 3])",
+        "builtins",
     ]
     for t in tests:
         ast = parser.parse(t)

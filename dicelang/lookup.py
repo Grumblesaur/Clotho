@@ -1,13 +1,8 @@
-import math
-import cmath
 import copy
-import re
+import plugins
 from utils import some, get_attr_or_item
 from enum import Enum, IntEnum
 from exceptions import BuiltinError, MissingScope
-from native import shuffled, stats, flatten, lzip, PrintQueue
-from random import random as rand
-from fractions import Fraction
 
 NotLocal = object()
 NotBuiltin = object()
@@ -171,51 +166,13 @@ class IdentType(IntEnum):
 
 
 class Module:
-    exposed: dict
-
-    @classmethod
-    def libraries(cls):
-        return list(cls.exposed.keys())
-
-    @classmethod
-    def expose(cls):
-        return {
-            'math': math,
-            'cmath': cmath,
-            'regex': re,
-            'str': str,
-            'int': int,
-            'float': float,
-            'dict': dict,
-            'tuple': tuple,
-            'set': set,
-            'frozenset': frozenset,
-            'abs': abs,
-            'sorted': sorted,
-            'min': min,
-            'max': max,
-            'sum': sum,
-            'zip': lzip,
-            'shuffled': shuffled,
-            'stats': stats,
-            'flatten': flatten,
-            'rand': rand,
-            'print': PrintQueue.print,
-            'print0': PrintQueue.print0,
-            'println': PrintQueue.println,
-            'println0': PrintQueue.println0,
-            'Fraction': Fraction,
-            'builtins': cls.libraries,
-        }
+    exposed = plugins.exposed
 
     def __new__(cls, *accessors):
         name, *attrs = accessors
         if name not in cls.exposed:
             return NotBuiltin
         return Builtin(cls.exposed[name], name, attrs)
-
-
-Module.exposed = Module.expose()
 
 
 class Access:
