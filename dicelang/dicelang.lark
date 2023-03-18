@@ -6,7 +6,6 @@ OP_AUG_MUL: "*="
 OP_AUG_DIV: "/="
 OP_AUG_IDIV: "//="
 OP_AUG_MOD: "%="
-OP_AUG_LOG: "%%="
 OP_AUG_EXP: "**="
 OP_AUG_LSHIFT: "<<="
 OP_AUG_RSHIFT: ">>="
@@ -17,8 +16,8 @@ OP_AUG_AND: "and="
 OP_AUG_OR: "or="
 OP_AUG_XOR: "xor="
 OP_AUGMENT: OP_AUG_ADD | OP_AUG_SUB | OP_AUG_CAT | OP_AUG_MUL
-          | OP_AUG_DIV | OP_AUG_IDIV | OP_AUG_MOD | OP_AUG_LOG
-          | OP_AUG_EXP | OP_AUG_LSHIFT | OP_AUG_RSHIFT | OP_AUG_BIT_AND
+          | OP_AUG_DIV | OP_AUG_IDIV | OP_AUG_MOD | OP_AUG_EXP
+          | OP_AUG_LSHIFT | OP_AUG_RSHIFT | OP_AUG_BIT_AND
           | OP_AUG_BIT_OR | OP_AUG_BIT_XOR | OP_AUG_AND | OP_AUG_OR
           | OP_AUG_XOR
 
@@ -113,11 +112,11 @@ and: and "and" not -> boolean_and
 not: KW_NOT comparison -> boolean_not
    | comparison
 
-comparison: bitwise_or
-          | bitwise_or ((/>/|/</|/>=/|/<=/|/==/|/!=/) bitwise_and)+ -> compare_math
+comparison: bitwise_or ((/>/|/</|/>=/|/<=/|/==/|/!=/) bitwise_and)+ -> compare_math
           | bitwise_or (identity_op bitwise_and)+ -> identity
           | bitwise_or KW_IN bitwise_and -> member_of
           | bitwise_or KW_NOT KW_IN bitwise_and -> member_of_negated
+          | bitwise_or
 
 bitwise_or: bitwise_or "|" bitwise_xor -> bit_or
           | bitwise_xor
@@ -152,10 +151,10 @@ power: special "**" power -> exponent
 special: "&" dice -> sum_or_join
        | "#" dice -> len_or_mag
        | special "!" dice -> coinflip
-       | "@" dice -> random_selection_unary
-       | special "@" dice -> random_selection_binary
-       | "@!" dice -> random_selection_replacing_unary
-       | special "@!" dice -> random_selection_replacing_binary
+       | "@" dice -> random_selection_replacing_unary
+       | special "@" dice -> random_selection_replacing_binary
+       | "@!" dice -> random_selection_unary
+       | special "@!" dice -> random_selection_binary
        | dice
 
 dice: "d" dice -> die_unary

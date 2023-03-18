@@ -5,6 +5,7 @@ import math
 import dicecore
 import utils
 import inspect
+import ops
 
 from collections.abc import Iterable, Sequence
 from typing import Hashable
@@ -311,9 +312,8 @@ class DicelangInterpreter(Interpreter):
         return self.visit(right)
 
     def boolean_xor(self, tree):
-        left, right = self.visit_children(tree)
-        items = left, right
-        return any(items) and not all(items)
+        operands = self.visit_children(tree)
+        return any(operands) and not all(operands)
 
     def boolean_and(self, tree):
         left, right = tree.children
@@ -322,7 +322,7 @@ class DicelangInterpreter(Interpreter):
         return evaluated
 
     def boolean_not(self, tree):
-        return not self.visit(tree.children[1])
+        return not self.visit(tree.children[0])
 
     @staticmethod
     def number(tree):
@@ -540,6 +540,17 @@ class DicelangInterpreter(Interpreter):
     def public_identifier(tree):
         return IdentType.PUBLIC, str(tree.children[0])
 
+    augments = {'+=': operator.iadd, '-=': operator.isub, '$=': ops.icat,
+                '*=': operator.imul, '/=': operator.itruediv, '//=': operator.ifloordiv,
+                '%=': operator.imod, '**=': operator.ipow, '<<=': operator.ilshift,
+                '>>=': operator.irshift, '&=': operator.iand, '|=': operator.ior,
+                '^=': operator.ixor, 'and=': ops.iand, 'xor=': ops.ixor,
+                'or=': ops.ior}
+
+    def augmented_any(self, tree):
+        target, op, augment = self.visit_children(tree)
+        return target.put(self.augments[op](target.get(), augment))
+
     def assignment_single(self, tree):
         lval, _, rval = self.visit_children(tree)
         return lval.put(rval)
@@ -612,13 +623,7 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        'Q = {"a": 1, "f": (x) -> this.a + x}; Q.f(2)',
-        'a, b, *c = [1, 2, 3, 4, 5]',
-        'a, b, *c, d, e = [1, 2, 3, 4, 5, 6, 7]',
-        '*a, b, c = [1, 2, 3, 4, 5]',
-        'a, b, c = [1, 2, 3]',
-        'a, b, c = 1, 2, 3',
-        'a = 1',
+        'a = 1; a <<= 2; a',
     ]
     for t in tests:
         ast = parser.parse(t)
