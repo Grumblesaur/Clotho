@@ -54,7 +54,11 @@ class DicelangRuntimeError(DicelangException):
     pass
 
 
-class DuplicateArgument(DicelangRuntimeError):
+class DuplicateParameter(DicelangRuntimeError):
+    pass
+
+
+class BadArguments(DicelangRuntimeError):
     pass
 
 

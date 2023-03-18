@@ -1,34 +1,3 @@
-OP_DIE: /\bd\b/
-OP_ROLL: /\br\b/
-OP_HIGH: "h"
-OP_LOW: "l"
-OP_COIN: "!"
-OP_RS: "@"
-OP_RSR: "@!"
-OP_LEN: "#"
-OP_ADD: "+"
-OP_SUB: "-"
-OP_CAT: "$"
-OP_MUL: "*"
-OP_DIV: "/"
-OP_LSHIFT: "<<"
-OP_RSHIFT: ">>"
-OP_IDIV: "//"
-OP_EXP: "**"
-OP_LOG: "%%"
-OP_MOD: "%"
-OP_BIT_AND: "&"
-OP_BIT_OR: "|"
-OP_BIT_XOR: "^"
-OP_BIT_NOT: "~"
-OP_EQ: "=="
-OP_NE: "!="
-OP_GT: ">"
-OP_LT: "<"
-OP_GE: ">="
-OP_LE: "<="
-OP_COMPARE: OP_EQ | OP_NE | OP_GT | OP_LT | OP_GE | OP_LE
-
 OP_ASSIGN: "="
 OP_AUG_ADD: "+="
 OP_AUG_SUB: "-="
@@ -66,10 +35,6 @@ KW_TO: "to"
 KW_THROUGH: "through" | "thru"
 KW_BEGIN: "begin"
 KW_END: "end"
-KW_REPEAT: "repeat" | "rep"
-KW_AND: "and"
-KW_OR: "or"
-KW_XOR: "xor"
 KW_MY: "my"
 KW_OUR: "our"
 KW_PUB: "public" | "pub"
@@ -106,12 +71,14 @@ slice: expr -> index_or_key
      | ":" ":" expr -> step_slice
 
 expr: assignment
+    | function
 
 assignment: lvalue OP_ASSIGN rvalue -> assignment_single
-          | lvalue ("," lvalue)+ OP_ASSIGN rvalue ("," rvalue)+ -> assignment_multi
-          | OP_MUL lvalue ("," lvalue)+ OP_ASSIGN rvalue -> assignment_unpack_left
-          | (lvalue ",")+ OP_MUL lvalue ("," lvalue)+ OP_ASSIGN rvalue -> assignment_unpack_middle
-          | (lvalue ",")+ OP_MUL lvalue OP_ASSIGN rvalue -> assignment_unpack_right
+          | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue ("," rvalue)+ ","? -> assignment_multi
+          | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack
+          | /\*/ lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack_left
+          | (lvalue ",")+ /\*/ lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack_middle
+          | (lvalue ",")+ /\*/ lvalue OP_ASSIGN rvalue -> assignment_unpack_right
           | augmented
 
 augmented: lvalue OP_AUGMENT rvalue -> augmented_any
@@ -119,93 +86,92 @@ augmented: lvalue OP_AUGMENT rvalue -> augmented_any
 
 compound: conditional
         | iteration
-        | function
         | block
         | inline_if
 
-function: "(" parameters? ")" "->" body
+function: "(" (parameter ("," parameter)*)? ("," parameter_starred)? ","? ")" "->" body
 
-parameters: IDENT ("," IDENT)+ ","? -> fixed_params
-          | (IDENT ",")* IDENT "*" ","? -> variadic_params
+parameter: IDENT
+parameter_starred: "*" IDENT
 
 inline_if: repeat KW_IF repeat KW_ELSE inline_if -> if_ternary
          | repeat KW_IF KW_ELSE inline_if -> if_binary
          | repeat
 
-repeat: repeat KW_REPEAT expr -> repetition
+repeat: repeat ("rep" | "repeat") expr -> repetition
       | or
 
-or: or KW_OR xor -> boolean_or
+or: or "or" xor -> boolean_or
   | xor
 
-xor: xor KW_XOR and -> boolean_xor
+xor: xor "xor" and -> boolean_xor
    | and
 
-and: and KW_AND not -> boolean_and
+and: and "and" not -> boolean_and
    | not
 
 not: KW_NOT comparison -> boolean_not
    | comparison
 
 comparison: bitwise_or
-          | bitwise_or (OP_COMPARE bitwise_and)+ -> compare_math
+          | bitwise_or ((/>/|/</|/>=/|/<=/|/==/|/!=/) bitwise_and)+ -> compare_math
           | bitwise_or (identity_op bitwise_and)+ -> identity
           | bitwise_or KW_IN bitwise_and -> member_of
           | bitwise_or KW_NOT KW_IN bitwise_and -> member_of_negated
 
-bitwise_or: bitwise_or OP_BIT_OR bitwise_xor -> bit_or
+bitwise_or: bitwise_or "|" bitwise_xor -> bit_or
           | bitwise_xor
 
-bitwise_xor: bitwise_xor OP_BIT_XOR bitwise_and -> bit_xor
+bitwise_xor: bitwise_xor "^" bitwise_and -> bit_xor
            | bitwise_and
 
-bitwise_and: bitwise_and OP_BIT_AND arithm -> bit_and
+bitwise_and: bitwise_and "&" arithm -> bit_and
            | arithm
 
-arithm: arithm OP_ADD term -> addition
-      | arithm OP_SUB term -> subtraction
-      | arithm OP_CAT term -> catenation
+arithm: arithm "+" term -> addition
+      | arithm "-" term -> subtraction
+      | arithm "$" term -> catenation
       | term
 
-term: term OP_MUL factor -> multiplication
-    | term OP_DIV factor -> division
-    | term OP_IDIV factor -> integer_division
-    | term OP_MOD factor -> remainder
-    | term OP_LSHIFT factor -> left_shift
-    | term OP_RSHIFT factor -> right_shift
+term: term "*" factor -> multiplication
+    | term "/" factor -> division
+    | term "//" factor -> integer_division
+    | term "%" factor -> remainder
+    | term "<<" factor -> left_shift
+    | term ">>" factor -> right_shift
     | factor
 
-factor: OP_SUB factor -> unary_minus
-      | OP_ADD factor -> unary_plus
-      | OP_BIT_NOT factor -> bit_not
+factor: "-" factor -> unary_minus
+      | "+" factor -> unary_plus
+      | "~" factor -> bit_not
       | power
 
-power: special OP_EXP power -> exponent
+power: special "**" power -> exponent
      | special
 
-special: OP_BIT_AND dice -> sum_or_join
-       | OP_LEN dice -> len_or_mag
-       | special OP_COIN dice -> coinflip
-       | OP_RS dice -> random_selection_unary
-       | special OP_RS dice -> random_selection_binary
-       | OP_RSR dice -> random_selection_replacing_unary
-       | special OP_RSR dice -> random_selection_replacing_binary
+special: "&" dice -> sum_or_join
+       | "#" dice -> len_or_mag
+       | special "!" dice -> coinflip
+       | "@" dice -> random_selection_unary
+       | special "@" dice -> random_selection_binary
+       | "@!" dice -> random_selection_replacing_unary
+       | special "@!" dice -> random_selection_replacing_binary
        | dice
 
-dice: OP_DIE dice -> die_unary
-    | dice OP_ROLL primary -> roll_binary
-    | OP_ROLL dice -> roll_unary
-    | dice OP_DIE primary -> die_binary
-    | dice OP_ROLL primary OP_HIGH primary -> roll_ternary_high
-    | dice OP_ROLL primary OP_LOW primary -> roll_ternary_high
-    | dice OP_DIE primary OP_HIGH primary -> die_ternary_high
-    | dice OP_DIE primary OP_LOW primary -> die_ternary_low
+dice: "d" dice -> die_unary
+    | dice "r" primary -> roll_binary
+    | "r" dice -> roll_unary
+    | dice "d" primary -> die_binary
+    | dice "r" primary "h" primary -> roll_ternary_high
+    | dice "r" primary "l" primary -> roll_ternary_high
+    | dice "d" primary "h" primary -> die_ternary_high
+    | dice "d" primary "l" primary -> die_ternary_low
     | primary
 
 primary: atom
-       | retrieval
        | primary subscript_chain -> retrieval_atomic
        | primary "(" arguments* ")" -> function_call
+       | retrieval
 
 access: identifier subscript_chain?
 retrieval: access
@@ -223,8 +189,7 @@ atom: number
     | set
     | "(" expr ")" -> priority
 
-number: LIT_INT_DEC | LIT_INT_HEX | LIT_REAL | LIT_COMPLEX
-      | LIT_NAN | LIT_INF
+number: LIT_INT_DEC | LIT_INT_HEX | LIT_REAL | LIT_COMPLEX | LIT_NAN | LIT_INF
 LIT_NAN: "nan"
 LIT_INF: "inf"
 
@@ -232,7 +197,7 @@ string: LIT_STRING_DOUBLE | LIT_STRING_SINGLE | LIT_RAW_SINGLE | LIT_RAW_DOUBLE
 boolean: LIT_TRUE | LIT_FALSE
 undefined: LIT_UNDEFINED
 spread: "*" expr -> spread_unpackable
-          | expr -> spread_single
+      | expr -> spread_single
 
 list: "[" "]" -> list_empty
     | "[" spread ("," spread)* ","? "]" -> list_populated

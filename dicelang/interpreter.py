@@ -74,54 +74,56 @@ class DicelangInterpreter(Interpreter):
         return self.visit(else_action)
 
     def repetition(self, tree):
-        repeats = self.visit(tree.children[2])
-        return [self.visit(tree.children[0]) for _ in range(repeats)]
+        repeatable, repeats = tree.children
+        return [self.visit(repeatable) for _ in range(self.visit(repeats))]
 
     def die_unary(self, tree):
-        _, sides = self.visit(tree.children[0])
+        sides = self.visit(tree.children[0])
         return dicecore.keep_all(1, sides)
 
     def die_binary(self, tree):
-        dice, _, sides = self.visit_children(tree)
+        dice, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides)
 
     def die_ternary_high(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
+        dice, sides, keep = self.visit_children(tree)
         return dicecore.keep_highest(dice, sides, keep)
 
     def die_ternary_low(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
+        dice, sides, keep = self.visit_children(tree)
         return dicecore.keep_lowest(dice, sides, keep)
 
     def roll_unary(self, tree):
-        _, sides = self.visit(tree.children[0])
+        sides = self.visit(tree.children[0])
         return dicecore.keep_all(1, sides, as_sum=False)
 
     def roll_binary(self, tree):
-        dice, _, sides = self.visit_children(tree)
+        dice, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides, as_sum=False)
 
     def roll_ternary_high(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
+        dice, sides, keep = self.visit_children(tree)
         return dicecore.keep_highest(dice, sides, keep, as_sum=False)
 
     def roll_ternary_low(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
+        dice, sides, keep = self.visit_children(tree)
         return dicecore.keep_lowest(dice, sides, keep, as_sum=False)
 
     def exponent(self, tree):
-        mantissa, _, superscript = self.visit_children(tree)
+        mantissa, superscript = self.visit_children(tree)
         return mantissa ** superscript
 
     def unary_minus(self, tree):
-        _, operand = self.visit_children(tree)
+        operand = self.visit(tree.children[0])
         if isinstance(operand, Sequence):
             return operand[::-1]
         return -operand
 
     def unary_plus(self, tree):
-        _, operand = self.visit_children(tree)
-        return +operand
+        operand = self.visit_children(tree)
+        if isinstance(operand, (int, float, complex)):
+            return +operand
+        return operand
 
     def multiplication(self, tree):
         multiplier, _, multiplicand = self.visit_children(tree)
@@ -149,7 +151,7 @@ class DicelangInterpreter(Interpreter):
         return dividend // divisor
 
     def left_shift(self, tree):
-        bits, _, shift = self.visit_children(tree)
+        bits, shift = self.visit_children(tree)
         if isinstance(bits, (list, tuple)):
             return bits + type(bits)([shift])
         elif isinstance(bits, str):
@@ -157,7 +159,7 @@ class DicelangInterpreter(Interpreter):
         return bits << shift
 
     def right_shift(self, tree):
-        bits, _, shift = self.visit_children(tree)
+        bits, shift = self.visit_children(tree)
         if isinstance(bits, (list, tuple)):
             return type(bits)([shift]) + bits
         elif isinstance(bits, str):
@@ -165,11 +167,11 @@ class DicelangInterpreter(Interpreter):
         return bits >> shift
 
     def remainder(self, tree):
-        dividend, _, divisor = self.visit_children(tree)
+        dividend, divisor = self.visit_children(tree)
         return dividend % divisor
 
     def addition(self, tree):
-        addend, _, augend = self.visit_children(tree)
+        addend, augend = self.visit_children(tree)
         if isinstance(addend, dict) and isinstance(augend, dict):
             return {**addend, **augend}
         if utils.isvector(addend) and utils.isvector(augend):
@@ -177,7 +179,7 @@ class DicelangInterpreter(Interpreter):
         return addend + augend
 
     def subtraction(self, tree):
-        minuend, _, subtrahend = self.visit_children(tree)
+        minuend, subtrahend = self.visit_children(tree)
         # For list-y minuends, remove the first instance of each element
         # in subtrahend (or subtrahend itself it it's not a container)
         # from minuend, if it's present.
@@ -201,29 +203,29 @@ class DicelangInterpreter(Interpreter):
         return minuend - subtrahend
 
     def catenation(self, tree):
-        high_order, _, low_order = self.visit_children(tree)
+        high_order, low_order = self.visit_children(tree)
         return int(f'{int(high_order)}{int(low_order)}')
 
     def bit_and(self, tree):
-        left, _, right = self.visit_children(tree)
+        left, right = self.visit_children(tree)
         return left & right
 
     def bit_xor(self, tree):
-        left, _, right = self.visit_children(tree)
+        left, right = self.visit_children(tree)
         return left ^ right
 
     def bit_or(self, tree):
-        left, _, right = self.visit_children(tree)
+        left, right = self.visit_children(tree)
         return left | right
 
     def bit_not(self, tree):
-        _, operand = self.visit_children(tree)
+        operand = self.visit(tree.children[0])
         if isinstance(operand, Complex):
             return operand.conjugate()
         return ~operand
 
     def sum_or_join(self, tree):
-        _, operand = self.visit_children(tree)
+        operand = self.visit_children(tree)
         if isinstance(operand, Iterable) and not isinstance(operand, str):
             return utils.vector_sum(operand)
         elif isinstance(operand, Complex):
@@ -231,7 +233,7 @@ class DicelangInterpreter(Interpreter):
         return operand
 
     def len_or_mag(self, tree):
-        _, operand = self.visit_children(tree)
+        operand = self.visit_children(tree)
         if hasattr(operand, '__len__'):
             return len(operand)
         elif isinstance(operand, Complex):
@@ -241,25 +243,24 @@ class DicelangInterpreter(Interpreter):
         return 0
 
     def coinflip(self, tree):
-        a = tree.children[0]
-        b = tree.children[2]
+        a, b = tree.children
         return self.visit(a if random.randint(0, 1) else b)
 
     def random_selection_replacing_unary(self, tree):
-        _, population = self.visit_children(tree)
+        population = self.visit_children(tree)
         if hasattr(population, '__len__'):
             return random.choice(population)
         return population
 
     def random_selection_replacing_binary(self, tree):
-        count, _, population = self.visit_children(tree)
+        count, population = self.visit_children(tree)
         return random.choices(population, k=count)
 
     def random_selection_unary(self, tree):
         return self.random_selection_replacing_unary(tree)
 
     def random_selection_binary(self, tree):
-        count, _, population = self.visit_children(tree)
+        count, population = self.visit_children(tree)
         if hasattr(population, '__len__'):
             return random.sample(population, count)
         return [population] * count
@@ -304,18 +305,18 @@ class DicelangInterpreter(Interpreter):
         return element not in collection
 
     def boolean_or(self, tree):
-        left, _, right = tree.children
+        left, right = tree.children
         if evaluated := self.visit(left):
             return evaluated
         return self.visit(right)
 
     def boolean_xor(self, tree):
-        left, _, right = self.visit_children(tree)
+        left, right = self.visit_children(tree)
         items = left, right
         return any(items) and not all(items)
 
     def boolean_and(self, tree):
-        left, _, right = tree.children
+        left, right = tree.children
         if evaluated := self.visit(left):
             return self.visit(right)
         return evaluated
@@ -446,6 +447,20 @@ class DicelangInterpreter(Interpreter):
         return Spread(items)
 
     @staticmethod
+    def parameter(tree):
+        return utils.Parameter(str(tree.children[0]))
+
+    @staticmethod
+    def parameter_starred(tree):
+        return utils.Parameter(str(tree.children[0]), starred=True)
+
+    def function(self, tree):
+        parameters, code = tree.children[:-1], tree.children[-1]
+        parameters = [self.visit(p) for p in parameters]
+        closure = self.call_stack.freeze()
+        return UserFunction.from_ast(code, parameters, closure)
+
+    @staticmethod
     def tuple_empty(_):
         return ()
 
@@ -502,6 +517,8 @@ class DicelangInterpreter(Interpreter):
     def function_call(self, tree):
         callee, *arguments = self.visit_children(tree)
         arguments = arguments[0] if arguments else ()
+        if isinstance(callee, UserFunction):
+            return callee(self, *arguments)
         return callee(*arguments)
 
     def arguments(self, tree):
@@ -539,15 +556,53 @@ class DicelangInterpreter(Interpreter):
         operands = self.visit_children(tree)
         lvals, rval = operands[1:-2], operands[-1]
         if not utils.isordered(rval):
-            raise UnpackError(f"can't unpack from {type(rval).__name__}")
-        if len(rval) < len(lvals) - 1:
-            raise UnpackError(f"not enough values to fill assignment targets")
+            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
+        if (act := len(rval)) < (exp := len(lvals) - 1):
+            raise UnpackError(f'expected at least {exp} values to unpack, but got {act}')
         starred, individual = lvals[0], lvals[1:]
-        start = len(rval)-1
+        start = len(rval) - 1
         end = start - (ilen := len(individual))
         backwards = [individual[-j].put(rval[i]) for i, j in zip(range(start, end, -1), range(1, ilen+1))]
         packed = starred.put(rval[:end+1])
         return tuple(itertools.chain([packed], reversed(backwards)))
+
+    def assignment_unpack_middle(self, tree):
+        operands = self.visit_children(tree)
+        lvals, rval = operands[0:-2], operands[-1]
+        if not utils.isordered(rval):
+            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
+        if (act := len(rval)) < (exp := len(lvals) - 1):
+            raise UnpackError(f'expected at least {exp} values to unpack, but got {act}')
+        head, rest = utils.split(lvals, "*")
+        starred, tail = rest[0], rest[1:]
+        hc, tc = len(head), len(tail)
+        hvals, svals, tvals = rval[:hc], rval[hc:-tc], rval[-tc:]
+        hout = [left.put(right) for left, right in zip(head, hvals)]
+        tout = [left.put(right) for left, right in zip(tail, tvals)]
+        sout = starred.put(svals)
+        return tuple(itertools.chain(hout, [sout], tout))
+
+    def assignment_unpack_right(self, tree):
+        operands = self.visit_children(tree)
+        lvals, rval = operands[0:-2], operands[-1]
+        if not utils.isordered(rval):
+            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
+        if (act := len(rval)) < (exp := len(lvals) - 1):
+            raise UnpackError(f'expected at least {exp} values to unpack, but got {act}')
+        individual, starred = utils.split(lvals, "*")
+        end = len(individual)
+        forwards = [individual[i].put(rval[i]) for i in range(end)]
+        packed = starred[0].put(rval[end:])
+        return tuple(itertools.chain(forwards, [packed]))
+
+    def assignment_unpack(self, tree):
+        operands = self.visit_children(tree)
+        lvals, rval = operands[0:-2], operands[-1]
+        if not utils.isordered(rval):
+            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
+        if (act := len(rval)) < (exp := len(lvals)):
+            raise UnpackError(f'expected {exp} values to unpack, but got {act}')
+        return tuple(left.put(right) for left, right in zip(lvals, rval))
 
     def __default__(self, tree):
         return self.visit(tree.children[0])
@@ -557,12 +612,15 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        'p = R"\\w+"; q = "beans"; regex.match(p, q)',
-        'ex = {"foo": 1, "bar": 2}; ex.foo',
-        'builtins()',
-        'cmath.phase(3.2-2.9j)'
+        'Q = {"a": 1, "f": (x) -> this.a + x}; Q.f(2)',
+        'a, b, *c = [1, 2, 3, 4, 5]',
+        'a, b, *c, d, e = [1, 2, 3, 4, 5, 6, 7]',
+        '*a, b, c = [1, 2, 3, 4, 5]',
+        'a, b, c = [1, 2, 3]',
+        'a, b, c = 1, 2, 3',
+        'a = 1',
     ]
     for t in tests:
         ast = parser.parse(t)
         output = di.visit(ast)
-        print(output)
+        print(utils.serialize(output))

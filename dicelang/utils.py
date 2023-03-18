@@ -5,13 +5,30 @@ from collections.abc import Iterable
 from exceptions import InvalidSubscript
 
 
+def serialize(x):
+    return x.serialization() if hasattr(x, 'serialization') else repr(x)
+
+
+class Parameter:
+    def __init__(self, name, starred=False):
+        self.name = name
+        self.starred = starred
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.name!r}, {self.starred!r})'
+
+
 def get_attr_or_item(obj, name):
     if hasattr(obj, name):
         return getattr(obj, name)
     try:
         out = obj[name]
-    except (TypeError, KeyError):
-        raise InvalidSubscript(f'builtin object or module has no attribute, key, or index {name!r}')
+    except (TypeError, KeyError) as e:
+        print(e)
+        raise InvalidSubscript(f'builtin object {obj} or module has no attribute, key, or index {name!r}')
     return out
 
 

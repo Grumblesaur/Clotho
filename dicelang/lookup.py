@@ -4,7 +4,6 @@ import copy
 import re
 from utils import some, get_attr_or_item
 from enum import Enum, IntEnum
-from typing import Any
 from exceptions import BuiltinError, MissingScope
 from native import shuffled, stats, flatten, lzip, PrintQueue
 from random import random as rand
@@ -189,6 +188,7 @@ class Module:
             'sorted': sorted,
             'min': min,
             'max': max,
+            'sum': sum,
             'zip': lzip,
             'shuffled': shuffled,
             'stats': stats,
