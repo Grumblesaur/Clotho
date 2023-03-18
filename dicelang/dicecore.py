@@ -1,5 +1,6 @@
-from random import randint
 from enum import Enum
+from random import randint
+
 from exceptions import ImpossibleDice
 
 

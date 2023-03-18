@@ -1,25 +1,23 @@
-import itertools
-import random
-import operator
-import math
-import dicecore
-import utils
 import inspect
-import ops
-
+import itertools
+import math
+import operator
+import random
 from collections.abc import Iterable, Sequence
-from typing import Hashable
-from numbers import (Real, Complex, Integral)
-from lark.visitors import Interpreter
-from special import Undefined, Spread
-from lookup import Lookup, Accessor, IdentType, CallStack
-from user_function import UserFunction
 from functools import partialmethod
-from exceptions import (
-    BadLiteral, SpreadError, InvalidSubscript, Impossible, Empty,
-    AssignmentError, UnpackError, Break, Continue, Return, Terminate,
-    DicelangSignal, IllegalSignal
-)
+from numbers import Complex, Integral, Real
+from typing import Hashable
+
+from lark.visitors import Interpreter
+
+import dicecore
+import ops
+import utils
+from exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal, Impossible,
+                        InvalidSubscript, Return, SpreadError, Terminate, UnpackError)
+from lookup import Accessor, CallStack, IdentType, Lookup
+from special import Spread, Undefined
+from user_function import UserFunction
 
 
 class DicelangInterpreter(Interpreter):
@@ -693,30 +691,11 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        '''f = (x, y) -> begin
-            if x is 0 then begin
-                return y
-            end;
-            (x, y)
-        end;
-        [f(0, 10), f(10, 10)]
-        ''',
-        "squares = for x in [1 through 10] do x * x; sum(squares)",
-        """break_test = for x in [1 through 10] do begin
-            if x == 5 then begin
-                continue 0
-            end else if x == 9 then begin
-                break 0
-            end else begin
-                x
-            end;
-        end;""",
-        """infinite_loop = () -> begin
-            while True do terminate 999;
-        end; infinite_loop();""",
-        """Undefined1 = 10""",
-        "shuffled([2 through 50 by 3])",
-        "builtins",
+        '''if isinstance(1 ! '1', typeof(1)) then begin
+            'integer'
+        end else begin
+            'string'
+        end'''
     ]
     for t in tests:
         ast = parser.parse(t)

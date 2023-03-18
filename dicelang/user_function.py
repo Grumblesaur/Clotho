@@ -1,7 +1,8 @@
+from copy import deepcopy
+
+from exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
 from parser import parser
 from special import Undefined
-from exceptions import DuplicateParameter, BadArguments, Return, Break, Continue, IllegalSignal
-from copy import deepcopy
 
 
 class UserFunction:

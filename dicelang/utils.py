@@ -1,8 +1,9 @@
+from collections.abc import Iterable
 from functools import reduce
 from operator import add
-from special import Spread
-from collections.abc import Iterable
+
 from exceptions import InvalidSubscript
+from special import Spread
 
 
 def serialize(x):

@@ -1,9 +1,10 @@
-import math
 import cmath
+import math
 import re
-from random import random as rand
 from fractions import Fraction
-from native import PrintQueue as pq, lzip, shuffled, flatten, stats
+from random import random as rand
+
+from native import PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof
 
 exposed = {
     'math': math,
@@ -21,6 +22,9 @@ exposed = {
     'min': min,
     'max': max,
     'sum': sum,
+    'isinstance': isinstance,
+    'typeof': typeof,
+    'typename': typename,
     'zip': lzip,
     'shuffled': shuffled,
     'stats': stats,

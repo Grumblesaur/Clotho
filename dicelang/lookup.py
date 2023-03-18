@@ -1,8 +1,9 @@
 import copy
-import plugins
-from utils import some, get_attr_or_item
 from enum import Enum, IntEnum
+
+import plugins
 from exceptions import BuiltinError, MissingScope
+from utils import get_attr_or_item, some
 
 NotLocal = object()
 NotBuiltin = object()

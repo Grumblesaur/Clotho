@@ -1,5 +1,6 @@
-from random import shuffle
 import statistics
+from random import shuffle
+
 import more_itertools
 
 
@@ -61,3 +62,11 @@ def flatten(items):
 
 def lzip(*iterables):
     return list(zip(*iterables))
+
+
+def typeof(x):
+    return x.__class__
+
+
+def typename(x):
+    return x.__class__.__name__
