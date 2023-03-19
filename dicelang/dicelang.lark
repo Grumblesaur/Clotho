@@ -74,9 +74,9 @@ slice: expr -> index_or_key
      | ":" expr ":" expr -> stop_step_slice
      | ":" ":" expr -> step_slice
 
+
+
 expr: assignment
-    | function
-    | flow
 
 assignment: lvalue OP_ASSIGN rvalue -> assignment_single
           | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue ("," rvalue)+ ","? -> assignment_multi
@@ -87,23 +87,27 @@ assignment: lvalue OP_ASSIGN rvalue -> assignment_single
           | augmented
 
 augmented: lvalue OP_AUGMENT rvalue -> augmented_any
-         | compound
+         | flow_control
+
+flow_control: function
+            | flow
+            | compound
 
 compound: conditional
         | iteration
         | block
         | inline_if
 
-function: "(" (parameter ("," parameter)*)? ("," parameter_starred)? ","? ")" "->" body
+function: "(" (parameter ("," parameter)*) ("," parameter_starred)? ","? ")" "->" body
 
 parameter: IDENT
-parameter_starred: "*" IDENT
+parameter_starred: /\*/ IDENT
 
 inline_if: repeat KW_IF repeat KW_ELSE inline_if -> if_ternary
          | repeat KW_IF KW_ELSE inline_if -> if_binary
          | repeat
 
-repeat: repeat ("rep" | "repeat") expr -> repetition
+repeat: repeat /\brep(eat)?\b/ expr -> repetition
       | or
 
 or: or "or" xor -> boolean_or
@@ -164,9 +168,9 @@ special: "&" dice -> sum_or_join
        | dice
 
 dice: "d" dice -> die_unary
-    | dice "r" primary -> roll_binary
-    | "r" dice -> roll_unary
     | dice "d" primary -> die_binary
+    | "r" dice -> roll_unary
+    | dice "r" primary -> roll_binary
     | dice "r" primary "h" primary -> roll_ternary_high
     | dice "r" primary "l" primary -> roll_ternary_high
     | dice "d" primary "h" primary -> die_ternary_high

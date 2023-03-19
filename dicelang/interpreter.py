@@ -502,13 +502,11 @@ class DicelangInterpreter(Interpreter):
 
     @staticmethod
     def parameter_starred(tree):
-        return utils.Parameter(str(tree.children[0]), starred=True)
+        return utils.Parameter(str(tree.children[-1]), starred=True)
 
     def function(self, tree):
-        parameters, code = tree.children[:-1], tree.children[-1]
-        parameters = [self.visit(p) for p in parameters]
         closure = self.call_stack.freeze()
-        return UserFunction.from_ast(code, parameters, closure)
+        return UserFunction.from_ast(self, tree, closure)
 
     @staticmethod
     def tuple_empty(_):
@@ -524,6 +522,15 @@ class DicelangInterpreter(Interpreter):
             key, value = self.visit_children(child)
             pairs[key] = value
         return pairs
+
+    def subscript_bracket(self, tree):
+        return Accessor.slice(self.visit(tree.children[0]))
+
+    def subscript_dot(self, tree):
+        return Accessor.attr(self.visit(tree.children[0]))
+
+    def subscript_chain(self, tree):
+        return self.visit_children(tree)
 
     def access(self, tree):
         name, *subscripts = self.visit_children(tree)
@@ -552,11 +559,11 @@ class DicelangInterpreter(Interpreter):
         return self.visit(tree.children[0]).get()
 
     def retrieval_atomic(self, tree):
-        target, *subscripts = self.visit_children(tree)
+        target, subscripts = self.visit_children(tree)
         last = Undefined
-        for itype, name in subscripts:
+        for accessor in subscripts:
             last = target
-            target = utils.get_attr_or_item(target, name)
+            target = accessor.get(target)
         if isinstance(target, UserFunction):
             target.this = last
             return target
@@ -691,13 +698,9 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        '''if isinstance(1 ! '1', typeof(1)) then begin
-            'integer'
-        end else begin
-            'string'
-        end'''
+        'f = (a, *b) -> d a + d b[0] + sum(b[1:]); f(6, 8, 2)',
     ]
     for t in tests:
         ast = parser.parse(t)
         output = di.execute(ast)
-        print(utils.serialize(output))
+        print(output)

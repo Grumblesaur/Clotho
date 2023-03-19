@@ -2,10 +2,17 @@ from copy import deepcopy
 
 from exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
 from parser import parser
+from reconstructor import DicelangReconstructor
 from special import Undefined
 
 
 class UserFunction:
+    reconstructor = DicelangReconstructor()
+
+    @classmethod
+    def reconstruct(cls, code):
+        return cls.reconstructor.visit(code)
+
     def __init__(self, code_string, closed_over=None):
         ast = parser.parse(code_string, start='function')
         *self.params, self.code = ast.children
@@ -13,24 +20,24 @@ class UserFunction:
         self.this = Undefined
         self.closed_over = closed_over or [{}]
         self.variadic = bool(self.params) and self.params[-1].starred
-        self.code_string = NotImplemented
+        self.source = f'({", ".join(self.params)}) -> {code_string}'
 
     def __repr__(self):
-        return self.code_string
+        return self.source
 
     def serialization(self):
-        return f'{self.__class__.__name__}({self.code_string, self.closed_over})'
+        return f'{self.__class__.__name__}({self.source, self.closed_over})'
 
     @classmethod
-    def from_ast(cls, code, params, closed_over=None):
+    def from_ast(cls, interpreter, tree, closed_over=None):
         self = object.__new__(cls)
-        self.code = code
-        self.params = params
+        self.code = tree.children[-1]
+        self.params = [interpreter.visit(c) for c in tree.children[:-1]]
+        self.variadic = bool(self.params) and self.params[-1].starred
         self.normalize()
         self.closed_over = closed_over or [{}]
-        self.variadic = bool(params) and params[-1].starred
         self.this = Undefined
-        self.code_string = "<UserFunction>"
+        self.source = cls.reconstruct(tree)
         return self
 
     def __deepcopy__(self, *args, **kwargs):
