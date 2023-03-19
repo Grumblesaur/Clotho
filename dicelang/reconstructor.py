@@ -281,34 +281,28 @@ class DicelangReconstructor(Interpreter):
         return f'{left} @! {right}'
 
     def die_unary(self, tree):
-        return f'd {self.visit(tree.children[0])}'
+        return ' '.join(self.visit_children(tree))
 
     def die_binary(self, tree):
-        left, right = self.visit_children(tree)
-        return f'{left} d {right}'
+        return ' '.join(self.visit_children(tree))
 
     def die_ternary_high(self, tree):
-        left, middle, right = self.visit_children(tree)
-        return f'{left} d {middle} h {right}'
+        return ' '.join(self.visit_children(tree))
 
     def die_ternary_low(self, tree):
-        left, middle, right = self.visit_children(tree)
-        return f'{left} d {middle} l {right}'
+        return ' '.join(self.visit_children(tree))
 
     def roll_unary(self, tree):
-        return f'r {self.visit(tree.children[0])}'
+        return ' '.join(self.visit_children(tree))
 
     def roll_binary(self, tree):
-        left, right = self.visit_children(tree)
-        return f'{left} r {right}'
+        return ' '.join(self.visit_children(tree))
 
     def roll_ternary_high(self, tree):
-        left, middle, right = self.visit_children(tree)
-        return f'{left} r {middle} h {right}'
+        return ' '.join(self.visit_children(tree))
 
     def roll_ternary_low(self, tree):
-        left, middle, right = self.visit_children(tree)
-        return f'{left} r {middle} l {right}'
+        return ' '.join(self.visit_children(tree))
 
     def retrieval_atomic(self, tree):
         left, right = self.visit_children(tree)
@@ -386,15 +380,7 @@ class DicelangReconstructor(Interpreter):
 
 if __name__ == '__main__':
     from parser import parser
-    input_ = '''p = begin
-        x = [1 through 10**2];
-        g = sum(x);
-        f = (y) -> begin
-            g + y
-        end;
-        [1, 2, 3, 4, 5][0:2:4];
-        {"a": 1, "b": 2}
-    end'''
+    input_ = '''f = (*a) -> begin d a[0] + d a[1] + sum(a[2:]) end'''
     ast = parser.parse(input_)
     dr = DicelangReconstructor()
     output = dr.visit(ast)

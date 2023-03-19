@@ -130,35 +130,35 @@ class DicelangInterpreter(Interpreter):
         return [self.visit(repeatable) for _ in range(self.visit(repeats))]
 
     def die_unary(self, tree):
-        sides = self.visit(tree.children[0])
+        _, sides = self.visit(tree.children[0])
         return dicecore.keep_all(1, sides)
 
     def die_binary(self, tree):
-        dice, sides = self.visit_children(tree)
+        dice, _, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides)
 
     def die_ternary_high(self, tree):
-        dice, sides, keep = self.visit_children(tree)
+        dice, _, sides, _, keep = self.visit_children(tree)
         return dicecore.keep_highest(dice, sides, keep)
 
     def die_ternary_low(self, tree):
-        dice, sides, keep = self.visit_children(tree)
+        dice, _, sides, _, keep = self.visit_children(tree)
         return dicecore.keep_lowest(dice, sides, keep)
 
     def roll_unary(self, tree):
-        sides = self.visit(tree.children[0])
+        _, sides = self.visit(tree.children[0])
         return dicecore.keep_all(1, sides, as_sum=False)
 
     def roll_binary(self, tree):
-        dice, sides = self.visit_children(tree)
+        dice, _, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides, as_sum=False)
 
     def roll_ternary_high(self, tree):
-        dice, sides, keep = self.visit_children(tree)
+        dice, _, sides, _, keep = self.visit_children(tree)
         return dicecore.keep_highest(dice, sides, keep, as_sum=False)
 
     def roll_ternary_low(self, tree):
-        dice, sides, keep = self.visit_children(tree)
+        dice, _, sides, _, keep = self.visit_children(tree)
         return dicecore.keep_lowest(dice, sides, keep, as_sum=False)
 
     def exponent(self, tree):
@@ -527,7 +527,7 @@ class DicelangInterpreter(Interpreter):
         return Accessor.slice(self.visit(tree.children[0]))
 
     def subscript_dot(self, tree):
-        return Accessor.attr(self.visit(tree.children[0]))
+        return Accessor.attr(self.visit(tree.children[0])[1])
 
     def subscript_chain(self, tree):
         return self.visit_children(tree)
@@ -698,7 +698,7 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        'f = (*a) -> begin d a[0] + d a[1] + sum(a[2:]) end; f(6, 8, 2)',
+        'dnd.stats',
     ]
     for t in tests:
         ast = parser.parse(t)

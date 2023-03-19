@@ -5,6 +5,7 @@ from fractions import Fraction
 from random import random as rand
 
 from native import PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof
+from bonus import dnd
 
 exposed = {
     'math': math,
@@ -35,6 +36,7 @@ exposed = {
     'println': pq.println,
     'println0': pq.println0,
     'Fraction': Fraction,
+    'dnd': dnd.dnd,
 }
 
 exposed['builtins'] = sorted(exposed.keys())
