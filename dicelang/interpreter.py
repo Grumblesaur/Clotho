@@ -698,7 +698,7 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        'f = (a, *b) -> d a + d b[0] + sum(b[1:]); f(6, 8, 2)',
+        'f = (*a) -> begin d a[0] + d a[1] + sum(a[2:]) end; f(6, 8, 2)',
     ]
     for t in tests:
         ast = parser.parse(t)

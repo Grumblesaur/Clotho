@@ -98,7 +98,7 @@ compound: conditional
         | block
         | inline_if
 
-function: "(" (parameter ("," parameter)*) ("," parameter_starred)? ","? ")" "->" body
+function: "(" ((parameter ("," parameter)*) ("," parameter_starred)? | parameter_starred) ","? ")" "->" body
 
 parameter: IDENT
 parameter_starred: /\*/ IDENT
@@ -215,10 +215,9 @@ list: "[" "]" -> list_empty
     | "[" expr KW_THROUGH expr "]" -> list_closed
     | "[" expr KW_THROUGH expr KW_BY expr "]" -> list_closed_stepped
 
-tuple: "(" spread "," ")" -> tuple_single
+tuple: "(" ")" -> tuple_empty
+     | "(" spread "," ")" -> tuple_single
      | "(" spread ("," spread)+ ","? ")" -> tuple_multi
-     | "(" ")" -> tuple_empty
-
 set: "{" spread ("," spread)* "}" -> set_populated
 
 dict: "{" "}" -> dict_empty
