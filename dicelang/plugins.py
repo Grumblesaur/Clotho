@@ -36,7 +36,7 @@ exposed = {
     'println': pq.println,
     'println0': pq.println0,
     'Fraction': Fraction,
-    'dnd': dnd.dnd,
+    'dnd': dnd.DND,
 }
 
 exposed['builtins'] = sorted(exposed.keys())

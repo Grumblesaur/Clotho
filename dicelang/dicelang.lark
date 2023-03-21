@@ -1,25 +1,6 @@
 OP_ASSIGN: "="
-OP_AUG_ADD: "+="
-OP_AUG_SUB: "-="
-OP_AUG_CAT: "$="
-OP_AUG_MUL: "*="
-OP_AUG_DIV: "/="
-OP_AUG_IDIV: "//="
-OP_AUG_MOD: "%="
-OP_AUG_EXP: "**="
-OP_AUG_LSHIFT: "<<="
-OP_AUG_RSHIFT: ">>="
-OP_AUG_BIT_AND: "&="
-OP_AUG_BIT_OR: "|="
-OP_AUG_BIT_XOR: "^="
-OP_AUG_AND: "and="
-OP_AUG_OR: "or="
-OP_AUG_XOR: "xor="
-OP_AUGMENT: OP_AUG_ADD | OP_AUG_SUB | OP_AUG_CAT | OP_AUG_MUL
-          | OP_AUG_DIV | OP_AUG_IDIV | OP_AUG_MOD | OP_AUG_EXP
-          | OP_AUG_LSHIFT | OP_AUG_RSHIFT | OP_AUG_BIT_AND
-          | OP_AUG_BIT_OR | OP_AUG_BIT_XOR | OP_AUG_AND | OP_AUG_OR
-          | OP_AUG_XOR
+OP_AUGMENT: "+=" | "-=" | "$=" | "*=" | "/=" | "//=" | "%=" | "**="
+          | "<<=" | ">>=" | "&=" | "|=" | "^=" | "and=" | "or=" | "xor="
 
 KW_IF: /\bif\b/
 KW_THEN: /\bthen\b/
@@ -57,8 +38,6 @@ iteration: KW_WHILE expr KW_DO body -> while_loop
          | KW_DO body KW_WHILE expr -> do_while_loop
          | KW_FOR identifier KW_IN expr KW_DO body -> for_loop
 
-flow: (KW_CONTINUE | KW_BREAK | KW_RETURN | KW_TERMINATE) expr?
-
 rvalue: expr
 subscript_chain: subscript+
 subscript: "[" slice "]" -> subscript_bracket
@@ -90,7 +69,6 @@ augmented: lvalue OP_AUGMENT rvalue -> augmented_any
          | flow_control
 
 flow_control: function
-            | flow
             | compound
 
 compound: conditional
@@ -103,9 +81,11 @@ function: "(" ((parameter ("," parameter)*) ("," parameter_starred)? | parameter
 parameter: IDENT
 parameter_starred: /\*/ IDENT
 
-inline_if: repeat KW_IF repeat KW_ELSE inline_if -> if_ternary
-         | repeat KW_IF KW_ELSE inline_if -> if_binary
-         | repeat
+inline_if: flow KW_IF flow KW_ELSE inline_if -> if_ternary
+         | flow
+
+flow: (KW_CONTINUE | KW_BREAK | KW_RETURN | KW_TERMINATE) repeat? -> keyword
+    | repeat
 
 repeat: repeat /\brep(eat)?\b/ expr -> repetition
       | or
@@ -225,6 +205,8 @@ dict: "{" "}" -> dict_empty
 
 kv_pair: expr ":" expr
 
+IDENT: /(?!(pub(lic)?|my|our|del(ete)?|continue|break|return|terminate|for|while|do|if|else|rep(eat)?|in|and|or|not|begin|end|d|r|h|l|is|True|False|Undefined)\b)[a-zA-Z]+[a-zA-Z0-9_]*/
+
 scoped_identifier: IDENT
 user_identifier: KW_MY IDENT
 server_identifier: KW_OUR IDENT
@@ -249,7 +231,6 @@ LIT_RAW_SINGLE: /\bR\b/ "'" _STRING_ESC_INNER "'"
 LIT_RAW_DOUBLE: /\bR\b/ ESCAPED_STRING
 LIT_STRING_DOUBLE: ESCAPED_STRING
 
-%import common.CNAME -> IDENT
 %ignore "?" /.*/
 %import common.WS
 %import common.NEWLINE

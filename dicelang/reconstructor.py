@@ -29,7 +29,7 @@ class DicelangReconstructor(Interpreter):
         return f'public {tree.children[-1].value}'
 
     def priority(self, tree):
-        return f'({self.visit(tree)})'
+        return f'({self.visit(tree.children[0])})'
 
     def block(self, tree):
         self.level += 1
@@ -54,7 +54,7 @@ class DicelangReconstructor(Interpreter):
     def for_loop(self, tree):
         return ' '.join(self.visit_children(tree))
 
-    def flow(self, tree):
+    def keyword(self, tree):
         match tree.children:
             case [x]:
                 return str(x)
@@ -160,9 +160,6 @@ class DicelangReconstructor(Interpreter):
         return f'*{tree.children[-1].value}'
 
     def if_ternary(self, tree):
-        return ' '.join(self.visit_children(tree))
-
-    def if_binary(self, tree):
         return ' '.join(self.visit_children(tree))
 
     def repeat(self, tree):

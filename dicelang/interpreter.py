@@ -119,12 +119,6 @@ class DicelangInterpreter(Interpreter):
             return self.visit(if_action)
         return self.visit(else_action)
 
-    def if_binary(self, tree):
-        condition_action, _, _, else_action = tree.children
-        if yes := self.visit(condition_action):
-            return yes
-        return self.visit(else_action)
-
     def repetition(self, tree):
         repeatable, repeats = tree.children
         return [self.visit(repeatable) for _ in range(self.visit(repeats))]
@@ -675,7 +669,7 @@ class DicelangInterpreter(Interpreter):
     def __default__(self, tree):
         return self.visit(tree.children[0])
 
-    def flow(self, tree):
+    def keyword(self, tree):
         evaluated = self.visit_children(tree)
         try:
             keyword, value = evaluated
@@ -698,7 +692,11 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        'dnd.stats',
+        """reterminate = (x) -> begin
+            return x if x else terminate 'dead'
+        end;
+        reterminate(1 ! 0)"""
+
     ]
     for t in tests:
         ast = parser.parse(t)
