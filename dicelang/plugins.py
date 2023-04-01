@@ -17,6 +17,7 @@ exposed = {
     'dict': dict,
     'tuple': tuple,
     'set': set,
+    'len': len,
     'frozenset': frozenset,
     'abs': abs,
     'sorted': sorted,

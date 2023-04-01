@@ -5,7 +5,7 @@ OP_AUGMENT: "+=" | "-=" | "$=" | "*=" | "/=" | "//=" | "%=" | "**="
 KW_IF: /\bif\b/
 KW_THEN: /\bthen\b/
 KW_ELSE: /\belse\b/
-KW_DEL: /\bdel\b/
+KW_DELETE: /\bdelete\b/
 KW_WHILE: /\bwhile\b/
 KW_DO: /\bdo\b/
 KW_FOR: /\bfor\b/
@@ -21,7 +21,7 @@ KW_BEGIN: /\bbegin\b/
 KW_END: /\bend\b/
 KW_MY: /\bmy\b/
 KW_OUR: /\bour\b/
-KW_PUB: /\bpub(lic)?\b/
+KW_PUB: /\bpublic\b/
 KW_IS: /\bis\b/
 KW_NOT: /\bnot\b/
 identity_op: KW_IS | KW_IS KW_NOT
@@ -56,7 +56,9 @@ slice: expr -> index_or_key
 
 
 expr: assignment
+    | deletion
 
+deletion: KW_DELETE access ("," access)* ","?
 assignment: lvalue OP_ASSIGN rvalue -> assignment_single
           | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue ("," rvalue)+ ","? -> assignment_multi
           | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack
@@ -76,7 +78,7 @@ compound: conditional
         | block
         | inline_if
 
-function: "(" ((parameter ("," parameter)*) ("," parameter_starred)? | parameter_starred) ","? ")" "->" body
+function: "(" ((parameter ("," parameter)*)? ("," parameter_starred)? | parameter_starred) ","? ")" "->" body
 
 parameter: IDENT
 parameter_starred: /\*/ IDENT
@@ -87,7 +89,7 @@ inline_if: flow KW_IF flow KW_ELSE inline_if -> if_ternary
 flow: (KW_CONTINUE | KW_BREAK | KW_RETURN | KW_TERMINATE) repeat? -> keyword
     | repeat
 
-repeat: repeat /\brep(eat)?\b/ expr -> repetition
+repeat: repeat /\brepeat\b/ expr -> repetition
       | or
 
 or: or "or" xor -> boolean_or
@@ -147,14 +149,14 @@ special: "&" dice -> sum_or_join
        | special "@!" dice -> random_selection_binary
        | dice
 
-dice: /\bd\b/ dice -> die_unary
-    | dice /\bd\b/ primary -> die_binary
-    | /\br\b/ dice -> roll_unary
-    | dice /\br\b/ primary -> roll_binary
-    | dice /\br\b/ primary /\bh\b/ primary -> roll_ternary_high
-    | dice /\br\b/ primary /\bl\b/ primary -> roll_ternary_high
-    | dice /\bd\b/ primary /\bh\b/ primary -> die_ternary_high
-    | dice /\bd\b/ primary /\bl\b/ primary -> die_ternary_low
+dice: /d/ dice -> die_unary
+    | dice /d/ primary -> die_binary
+    | /r/ dice -> roll_unary
+    | dice /r/ primary -> roll_binary
+    | dice /r/ primary /\bh\b/ primary -> roll_ternary_high
+    | dice /r/ primary /\bl\b/ primary -> roll_ternary_high
+    | dice /d/ primary /\bh\b/ primary -> die_ternary_high
+    | dice /d/ primary /\bl\b/ primary -> die_ternary_low
     | primary
 
 primary: atom
@@ -205,7 +207,7 @@ dict: "{" "}" -> dict_empty
 
 kv_pair: expr ":" expr
 
-IDENT: /(?!(pub(lic)?|my|our|del(ete)?|continue|break|return|terminate|for|while|do|if|else|rep(eat)?|in|and|or|not|begin|end|d|r|h|l|is|True|False|Undefined)\b)[a-zA-Z]+[a-zA-Z0-9_]*/
+IDENT: /(?!(public|my|our|delete|continue|break|return|terminate|for|while|do|if|else|repeat|in|and|or|not|begin|end|d|r|h|l|is|True|False|Undefined)\b)[a-zA-Z]+[a-zA-Z0-9_]*/
 
 scoped_identifier: IDENT
 user_identifier: KW_MY IDENT

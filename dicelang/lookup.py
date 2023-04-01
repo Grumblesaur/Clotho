@@ -2,7 +2,7 @@ import copy
 from enum import Enum, IntEnum
 
 import plugins
-from exceptions import BuiltinError, MissingScope
+from exceptions import BuiltinError, MissingScope, UndefinedName
 from utils import get_attr_or_item, some
 
 NotLocal = object()
@@ -334,6 +334,8 @@ class AbstractDatastore:
 
 
 class Temporary(AbstractDatastore):
+    DoesNotExist = object()
+
     def __init__(self):
         self.table = {
             IdentType.USER: {},
@@ -347,8 +349,20 @@ class Temporary(AbstractDatastore):
             f'.{acc!s}' if acc.atype == AccessorType.ATTR else f'[{acc!s}]' for acc in accessors)
 
     def get(self, itype, name, *accessors):
-        itype = itype or IdentType.SERVER
-        target = self.table[itype][name]
+        target = self.table[itype or IdentType.SERVER].get(name, self.DoesNotExist)
+        if target is self.DoesNotExist:
+            match itype:
+                case IdentType.SERVER:
+                    prefix = "our "
+                case IdentType.USER:
+                    prefix = "my "
+                case IdentType.PUBLIC:
+                    prefix = "public "
+                case _:
+                    prefix = ""
+            exc = UndefinedName(prefix + name)
+            print('about to raise', repr(exc))
+            raise exc
         for acc in accessors:
             target = acc.get(target)
         return target

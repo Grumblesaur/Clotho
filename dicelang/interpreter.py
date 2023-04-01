@@ -24,6 +24,12 @@ class DicelangInterpreter(Interpreter):
     def __init__(self, call_stack=None):
         self.call_stack = call_stack or CallStack()
 
+    def execute_test(self, tree):
+        try:
+            return self.visit(tree)
+        finally:
+            self.call_stack.reset()
+
     def execute(self, tree):
         try:
             result = self.visit(tree)
@@ -175,19 +181,24 @@ class DicelangInterpreter(Interpreter):
         multiplier, multiplicand = self.visit_children(tree)
         if isinstance(multiplier, int) and isinstance(multiplicand, Sequence):
             direction = utils.sign(multiplier)
-            return multiplicand[::direction] * multiplier
+            return multiplicand[::direction] * abs(multiplier)
         elif isinstance(multiplier, Sequence) and isinstance(multiplicand, int):
             direction = utils.sign(multiplicand)
-            return multiplier[::direction] * multiplicand
+            return multiplier[::direction] * abs(multiplicand)
         return multiplier * multiplicand
 
     def division(self, tree):
         dividend, divisor = self.visit_children(tree)
-        if isinstance(dividend, (list, tuple)):
+        if isinstance(dividend, (list, tuple, set)):
             if not isinstance(divisor, str) and isinstance(divisor, Iterable):
                 return type(dividend)(x for x in dividend if x not in divisor)
             else:
                 return type(dividend)(x for x in dividend if x != divisor)
+        if isinstance(dividend, dict):
+            if not isinstance(divisor, str) and isinstance(divisor, Iterable):
+                return {k: v for k, v in dividend.items() if k not in divisor}
+            else:
+                return {k: v for k, v in dividend.items() if k != divisor}
         if isinstance(dividend, str) and isinstance(divisor, str):
             return dividend.replace(divisor, '')
         return dividend / divisor
@@ -244,6 +255,10 @@ class DicelangInterpreter(Interpreter):
                 except ValueError:
                     pass
                 return type(minuend)(new)
+        elif isinstance(minuend, dict):
+            return {k: v for k, v in minuend.items() if k != subtrahend}
+        elif isinstance(minuend, set):
+            return {item for item in minuend if item != subtrahend}
         elif isinstance(minuend, str) and isinstance(subtrahend, str):
             return minuend.replace(subtrahend, '', 1)
         return minuend - subtrahend
@@ -669,6 +684,9 @@ class DicelangInterpreter(Interpreter):
     def __default__(self, tree):
         return self.visit(tree.children[0])
 
+    def deletion(self, tree):
+        return tuple(target.drop() for target in self.visit_children(tree)[1:])
+
     def keyword(self, tree):
         evaluated = self.visit_children(tree)
         try:
@@ -692,10 +710,7 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        """reterminate = (x) -> begin
-            return x if x else terminate 'dead'
-        end;
-        reterminate(1 ! 0)"""
+        """x = y = z = 1; delete x, y, z"""
 
     ]
     for t in tests:

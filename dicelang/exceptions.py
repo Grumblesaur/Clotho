@@ -44,6 +44,10 @@ class ProgrammingError(DicelangException):
     pass
 
 
+class UndefinedName(ProgrammingError):
+    pass
+
+
 class IllegalSignal(ProgrammingError):
     pass
 
