@@ -1,10 +1,13 @@
 import cmath
 import math
 import re
+import statistics
 from fractions import Fraction
 from random import random as rand
 
-from native import PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof
+from native import (
+    PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof, magnitude
+)
 from bonus import dnd
 
 exposed = {
@@ -18,11 +21,14 @@ exposed = {
     'tuple': tuple,
     'set': set,
     'len': len,
+    'magnitude': magnitude,
     'frozenset': frozenset,
     'abs': abs,
     'sorted': sorted,
     'min': min,
     'max': max,
+    'median': statistics.median,
+    'average': statistics.mean,
     'sum': sum,
     'isinstance': isinstance,
     'typeof': typeof,

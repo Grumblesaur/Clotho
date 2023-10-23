@@ -141,7 +141,6 @@ power: special "**" power -> exponent
      | special
 
 special: "&" dice -> sum_or_join
-       | "#" dice -> len_or_mag
        | special "!" dice -> coinflip
        | "@" dice -> random_selection_replacing_unary
        | special "@" dice -> random_selection_replacing_binary
@@ -153,10 +152,10 @@ dice: /d/ dice -> die_unary
     | dice /d/ primary -> die_binary
     | /r/ dice -> roll_unary
     | dice /r/ primary -> roll_binary
-    | dice /r/ primary /\bh\b/ primary -> roll_ternary_high
-    | dice /r/ primary /\bl\b/ primary -> roll_ternary_high
-    | dice /d/ primary /\bh\b/ primary -> die_ternary_high
-    | dice /d/ primary /\bl\b/ primary -> die_ternary_low
+    | dice /r/ primary /h/ primary -> roll_ternary_high
+    | dice /r/ primary /l/ primary -> roll_ternary_high
+    | dice /d/ primary /h/ primary -> die_ternary_high
+    | dice /d/ primary /l/ primary -> die_ternary_low
     | primary
 
 primary: atom

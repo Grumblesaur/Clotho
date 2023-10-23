@@ -1,7 +1,6 @@
 import unittest
 from dicelang.interpreter import DicelangInterpreter
 from dicelang.parser import parser
-from dicelang import exceptions
 
 Dicelang = DicelangInterpreter()
 
@@ -125,7 +124,7 @@ class Assignment(unittest.TestCase):
         self.assertEqual(((1, 2, 3), 4, 5), execute('*x, y, z = (1, 2, 3, 4, 5)'))
 
     def test_unpacking(self):
-        self.assertEqual(((1,2), 3, 4, 5), execute("*w, x, y, z = (1, 2, 3, 4, 5)"))
+        self.assertEqual(((1, 2), 3, 4, 5), execute("*w, x, y, z = (1, 2, 3, 4, 5)"))
         self.assertEqual((1, 2, (3,), 4, 5), execute("v, w, *x, y, z = (1, 2, 3, 4, 5)"))
         self.assertEqual((1, 2, 3, (4, 5)), execute("w, x, y, *z = (1, 2, 3, 4, 5)"))
 

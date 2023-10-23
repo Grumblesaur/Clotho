@@ -5,7 +5,7 @@ import operator
 import random
 from collections.abc import Iterable, Sequence
 from functools import partialmethod
-from numbers import Complex, Integral, Real
+from numbers import Complex
 from typing import Hashable
 
 from lark.visitors import Interpreter
@@ -238,7 +238,7 @@ class DicelangInterpreter(Interpreter):
     def subtraction(self, tree):
         minuend, subtrahend = self.visit_children(tree)
         # For list-y minuends, remove the first instance of each element
-        # in subtrahend (or subtrahend itself it it's not a container)
+        # in subtrahend (or subtrahend itself if it's not a container)
         # from minuend, if it's present.
         if utils.isordered(minuend):
             new = list(minuend)
@@ -291,16 +291,6 @@ class DicelangInterpreter(Interpreter):
         elif isinstance(operand, Complex):
             return operand.imag
         return operand
-
-    def len_or_mag(self, tree):
-        operand = self.visit_children(tree)
-        if hasattr(operand, '__len__'):
-            return len(operand)
-        elif isinstance(operand, Complex):
-            return abs(operand)
-        elif isinstance(operand, (Integral, Real)):
-            return math.ceil(math.log10(operand))
-        return 0
 
     def coinflip(self, tree):
         a, b = tree.children

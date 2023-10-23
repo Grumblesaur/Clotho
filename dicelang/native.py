@@ -1,4 +1,6 @@
 import statistics
+import math
+from numbers import Complex
 from random import shuffle
 
 import more_itertools
@@ -70,3 +72,9 @@ def typeof(x):
 
 def typename(x):
     return x.__class__.__name__
+
+
+def magnitude(x):
+    if isinstance(x, Complex):
+        return abs(x)
+    return math.ceil(math.log10(x))
