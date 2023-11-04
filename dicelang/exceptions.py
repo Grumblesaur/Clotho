@@ -48,6 +48,14 @@ class UndefinedName(ProgrammingError):
     pass
 
 
+class DeleteNonexistent(UndefinedName):
+    pass
+
+
+class FetchNonexistent(UndefinedName):
+    pass
+
+
 class IllegalSignal(ProgrammingError):
     pass
 

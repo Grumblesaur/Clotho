@@ -2,8 +2,14 @@ import copy
 from enum import Enum, IntEnum
 
 import plugins
-from exceptions import BuiltinError, MissingScope, UndefinedName
+from exceptions import BuiltinError, MissingScope, UndefinedName, DeleteNonexistent, FetchNonexistent, Impossible
 from utils import get_attr_or_item, some
+
+import time
+import threading
+
+import sqlite3
+from pathlib import Path
 
 NotLocal = object()
 NotBuiltin = object()
@@ -12,7 +18,7 @@ NotBuiltin = object()
 class CallStack:
     def __init__(self, datastore=None, frames=None):
         self.frame = 0
-        self.datastore = datastore or Temporary()
+        self.datastore = datastore or BasicStore()
         self.frames = frames or {}
         self.anonymous = []
         self.closure = []
@@ -148,15 +154,10 @@ class CallStack:
         return NotLocal
 
 
-class AccessType(Enum):
-    KEY = 0
-    SLICE = 1
-    DOT = 2
-
-
 class AccessorType(Enum):
     ATTR = 0
-    SLICE = 1
+    KEY = 1
+    SLICE = 2
 
 
 class IdentType(IntEnum):
@@ -164,6 +165,15 @@ class IdentType(IntEnum):
     USER = 1
     SERVER = 2
     PUBLIC = 3
+
+    def keyword(self):
+        if self is self.SCOPED:
+            return ''
+        elif self is self.USER:
+            return "my"
+        elif self is self.SERVER:
+            return "our"
+        return "public"
 
 
 class Module:
@@ -176,49 +186,6 @@ class Module:
         return Builtin(cls.exposed[name], name, attrs)
 
 
-class Access:
-    def __init__(self, key, atype):
-        self.key = key
-        self.atype = atype
-
-    @classmethod
-    def keyed(cls, key):
-        return cls(key, AccessType.KEY)
-
-    @classmethod
-    def sliced(cls, key):
-        return cls(key, AccessType.SLICE)
-
-    @classmethod
-    def dotted(cls, key):
-        return cls(key, AccessType.DOT)
-
-    def __repr__(self):
-        match self.atype:
-            case AccessType.KEY:
-                return f'[{self.key!r}]'
-            case AccessType.DOT:
-                return f'.{self.key!s}]'
-        x, y, z = self.key.start, self.key.stop, self.key.step
-        match int(''.join(str(some(i)) for i in (x, y, z))):
-            case 7:
-                return f'[{x!r}:{y!r}:{z!r}]'
-            case 6:
-                return f'[{x!r}:{y!r}]'
-            case 5:
-                return f'[{x!r}::{z!r}]'
-            case 4:
-                return f'[{x!r}:]'
-            case 3:
-                return f'[:{y!r}:{z!r}]'
-            case 2:
-                return f'[:{y!r}]'
-            case 1:
-                return f'[::{z!r}]'
-            case _:
-                return '[:]'
-
-
 class Accessor:
     def __init__(self, atype, value):
         self.atype = atype
@@ -227,6 +194,8 @@ class Accessor:
     def get(self, from_object):
         match self:
             case self.__class__(AccessorType.ATTR, x):
+                return get_attr_or_item(from_object, x)
+            case self.__class__(AccessorType.KEY, x):
                 return get_attr_or_item(from_object, x)
             case self.__class__(AccessorType.SLICE, x):
                 return from_object[x]
@@ -239,6 +208,10 @@ class Accessor:
     def slice(cls, value):
         return cls(AccessorType.SLICE, value)
 
+    @classmethod
+    def key(cls, value):
+        return cls(AccessorType.KEY, value)
+
     @property
     def args(self):
         return self.atype, self.value
@@ -249,7 +222,31 @@ class Accessor:
         return f'{type(self).__name__}({self.atype!r}, {self.value!r})'
 
     def __str__(self):
-        return f'{self.value!r}'
+        match self.atype:
+            case AccessorType.KEY:
+                return f'[{self.value!r}]'
+            case AccessorType.ATTR:
+                return f'.{self.value!s}]'
+            case AccessorType.SLICE:
+                x, y, z = self.value.start, self.value.stop, self.value.step
+                match int(''.join(str(some(i)) for i in (x, y, z))):
+                    case 7:
+                        return f'[{x!r}:{y!r}:{z!r}]'
+                    case 6:
+                        return f'[{x!r}:{y!r}]'
+                    case 5:
+                        return f'[{x!r}::{z!r}]'
+                    case 4:
+                        return f'[{x!r}:]'
+                    case 3:
+                        return f'[:{y!r}:{z!r}]'
+                    case 2:
+                        return f'[:{y!r}]'
+                    case 1:
+                        return f'[::{z!r}]'
+                    case _:
+                        return '[:]'
+        raise Impossible(f"Undefined or unhandled AccessorType: {self.atype}")
 
 
 class Builtin:
@@ -274,27 +271,28 @@ class Builtin:
 
 
 class Lookup:
-    def __init__(self, itype, call_stack, name, *accessors):
+    def __init__(self, itype, call_stack, owner, name, *accessors):
         self.itype = itype
+        self.owner = owner
         self.name = name
         self.accessors = accessors
         self.call_stack = call_stack
 
     @classmethod
-    def scoped(cls, call_stack, name, *accessors):
-        return cls(IdentType.SCOPED, call_stack, name, *accessors)
+    def scoped(cls, call_stack, owner, name, *accessors):
+        return cls(IdentType.SCOPED, call_stack, owner, name, *accessors)
 
     @classmethod
-    def user(cls, call_stack, name, *accessors):
-        return cls(IdentType.USER, call_stack, name, *accessors)
+    def user(cls, call_stack, owner, name, *accessors):
+        return cls(IdentType.USER, call_stack, owner, name, *accessors)
 
     @classmethod
-    def server(cls, call_stack, name, *accessors):
-        return cls(IdentType.SERVER, call_stack, name, *accessors)
+    def server(cls, call_stack, owner, name, *accessors):
+        return cls(IdentType.SERVER, call_stack, owner, name, *accessors)
 
     @classmethod
-    def public(cls, name, call_stack):
-        return cls(IdentType.PUBLIC, name, call_stack)
+    def public(cls, call_stack, _owner, name, *accessors):
+        return cls(IdentType.PUBLIC, call_stack, "clotho", name, *accessors)
 
     def get(self):
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
@@ -302,7 +300,7 @@ class Lookup:
         elif (maybe_scoped := self.call_stack.get(self.name)) is not NotLocal:
             target = maybe_scoped
         else:
-            target = self.call_stack.datastore.get(self.itype, self.name, *self.accessors)
+            target = self.call_stack.datastore.get(self.itype, self.owner, self.name, *self.accessors)
         for acc in self.accessors:
             target = acc.get(target)
         return target
@@ -312,70 +310,66 @@ class Lookup:
             raise BuiltinError.from_instance(maybe_builtin, "assign to")
         elif self.itype == IdentType.SCOPED:
             return self.call_stack.put(self.name, value)
-        return self.call_stack.datastore.put(self.itype, value, self.name, *self.accessors)
+        return self.call_stack.datastore.put(self.itype, self.owner, value, self.name, *self.accessors)
 
     def drop(self):
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             raise BuiltinError.from_instance(maybe_builtin, "delete")
         elif self.itype == IdentType.SCOPED:
             return self.call_stack.drop(self.name)
-        return self.call_stack.datastore.drop(self.itype, self.name, *self.accessors)
+        return self.call_stack.datastore.drop(self.itype, self.owner, self.name, *self.accessors)
 
 
 class AbstractDatastore:
-    def get(self, itype, name, *accessors):
+    def get(self, itype: IdentType, owner: str, name: str, *accessors):
         return NotImplemented
 
-    def put(self, itype, value, name, *accessors):
+    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
         return NotImplemented
 
-    def drop(self, itype, name, *accessors):
+    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
         return NotImplemented
 
 
-class Temporary(AbstractDatastore):
-    DoesNotExist = object()
+class BasicStore(AbstractDatastore):
+    def __init__(self, user_vars=None, server_vars=None, public_vars=None):
+        self.storage = {IdentType.USER: user_vars or {},
+                        IdentType.SERVER: server_vars or {},
+                        IdentType.PUBLIC: public_vars or {}}
 
-    def __init__(self):
-        self.table = {
-            IdentType.USER: {},
-            IdentType.SERVER: {},
-            IdentType.PUBLIC: {},
-        }
-
-    @staticmethod
-    def mutation_target(itype, name, *accessors):
-        return f'self.table[{int(itype)}][{name!r}]' + ''.join(
-            f'.{acc!s}' if acc.atype == AccessorType.ATTR else f'[{acc!s}]' for acc in accessors)
-
-    def get(self, itype, name, *accessors):
-        target = self.table[itype or IdentType.SERVER].get(name, self.DoesNotExist)
-        if target is self.DoesNotExist:
-            match itype:
-                case IdentType.SERVER:
-                    prefix = "our "
-                case IdentType.USER:
-                    prefix = "my "
-                case IdentType.PUBLIC:
-                    prefix = "public "
-                case _:
-                    prefix = ""
-            exc = UndefinedName(prefix + name)
-            print('about to raise', repr(exc))
-            raise exc
-        for acc in accessors:
-            target = acc.get(target)
-        return target
-
-    def put(self, itype, value, name, *accessors):
-        itype = itype or IdentType.SERVER
-        insert = self.mutation_target(itype, name, *accessors) + f' = {value!r}'
-        exec(insert)
+    def get(self, itype: IdentType, owner: str, name: str, *accessors):
+        store = self.storage[itype or IdentType.SERVER]
+        failed = False
+        if owner not in store:
+            store[owner] = {}
+            failed = True
+        elif name not in store[owner]:
+            failed = True
+        if failed:
+            raise FetchNonexistent(f'"{itype.keyword()} {name}"')
+        value = store[owner][name]
+        for accessor in accessors:
+            value = accessor.get(value)
         return value
 
-    def drop(self, itype, name, *accessors):
-        itype = itype or IdentType.SERVER
-        out = self.get(itype, name, *accessors)
-        delete = 'del self.mutation_target(itype, name, *accessors)'
-        exec(delete)
+    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
+        store = self.storage[itype or IdentType.SERVER]
+        if owner not in store:
+            store[owner] = {name: value}
+        elif name not in store[owner]:
+            store[owner][name] = value
+        else:
+            # TODO: build and execute insertion string from accessors
+            pass
+        return value
+
+    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
+        store = self.storage[itype or IdentType.SERVER]
+        if owner not in store or name not in store[owner]:
+            raise DeleteNonexistent(f'"{itype.keyword()} {name}"')
+        out = store[owner][name]
+        for accessor in accessors:
+            accessor.get(out)
+        # TODO: build and execute deletion string from accessors
+
         return out

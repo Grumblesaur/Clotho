@@ -23,6 +23,7 @@ from user_function import UserFunction
 class DicelangInterpreter(Interpreter):
     def __init__(self, call_stack=None):
         self.call_stack = call_stack or CallStack()
+        self.owner = None
 
     def execute_test(self, tree):
         try:
@@ -30,8 +31,9 @@ class DicelangInterpreter(Interpreter):
         finally:
             self.call_stack.reset()
 
-    def execute(self, tree):
+    def execute(self, tree, as_owner='clotho'):
         try:
+            self.owner = as_owner
             result = self.visit(tree)
         except Terminate as term:
             result = term.unwrap()
@@ -39,6 +41,7 @@ class DicelangInterpreter(Interpreter):
             raise IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
         finally:
             self.call_stack.reset()
+            self.owner = None
         return result
 
     def block(self, tree):
@@ -91,14 +94,14 @@ class DicelangInterpreter(Interpreter):
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
             case (IdentType.USER, x):
-                action = Lookup.server
+                action = Lookup.user
             case (IdentType.SERVER, x):
                 action = Lookup.server
             case (IdentType.PUBLIC, x):
                 action = Lookup.public
             case _:
                 raise Impossible(f"can't assign for loop variable {name}")
-        loop_variable = action(self.call_stack, x)
+        loop_variable = action(self.call_stack, self.owner, x)
         results = []
         try:
             for x in self.visit(iterable):
@@ -523,7 +526,10 @@ class DicelangInterpreter(Interpreter):
         return pairs
 
     def subscript_bracket(self, tree):
-        return Accessor.slice(self.visit(tree.children[0]))
+        bracketed = self.visit(tree.children[0])
+        if isinstance(bracketed, slice):
+            return Accessor.slice(bracketed)
+        return Accessor.key(bracketed)
 
     def subscript_dot(self, tree):
         return Accessor.attr(self.visit(tree.children[0])[1])
@@ -532,14 +538,7 @@ class DicelangInterpreter(Interpreter):
         return self.visit_children(tree)
 
     def access(self, tree):
-        name, *subscripts = self.visit_children(tree)
-        accessors = []
-        for sub in subscripts:
-            match sub:
-                case (IdentType.SCOPED, attr):
-                    accessors.append(Accessor.attr(attr))
-                case _:
-                    accessors.append(Accessor.slice(sub))
+        name, *accessors = self.visit_children(tree)
         match name:
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
@@ -550,9 +549,9 @@ class DicelangInterpreter(Interpreter):
             case (IdentType.PUBLIC, x):
                 action = Lookup.public
             case _:
-                raise Impossible(f"can't retrieve: {name!r} {subscripts!r}")
+                raise Impossible(f"can't retrieve: {name!r} {accessors!r}")
 
-        return action(self.call_stack, x, *accessors)
+        return action(self.call_stack, self.owner, x, *accessors)
 
     def retrieval(self, tree):
         return self.visit(tree.children[0]).get()
@@ -700,8 +699,12 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        """x = y = z = 1; delete x, y, z"""
-
+        """x = y = z = 1; delete x, y, z""",
+        """
+        con_check = () -> begin
+            con + 1d20
+        end;
+        """
     ]
     for t in tests:
         ast = parser.parse(t)
