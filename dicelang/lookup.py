@@ -2,13 +2,14 @@ import copy
 from enum import Enum, IntEnum
 
 import plugins
-from exceptions import BuiltinError, MissingScope, UndefinedName, DeleteNonexistent, FetchNonexistent, Impossible
+from exceptions import BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible
 from utils import get_attr_or_item, some
 
 import time
 import threading
 
 import sqlite3
+import pickle
 from pathlib import Path
 
 NotLocal = object()
@@ -18,7 +19,7 @@ NotBuiltin = object()
 class CallStack:
     def __init__(self, datastore=None, frames=None):
         self.frame = 0
-        self.datastore = datastore or BasicStore()
+        self.datastore = datastore or PersistentStore('persistence.db')
         self.frames = frames or {}
         self.anonymous = []
         self.closure = []
@@ -278,6 +279,9 @@ class Lookup:
         self.accessors = accessors
         self.call_stack = call_stack
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.itype, self.call_stack, self.owner, self.name, self.accessors})'
+
     @classmethod
     def scoped(cls, call_stack, owner, name, *accessors):
         return cls(IdentType.SCOPED, call_stack, owner, name, *accessors)
@@ -320,18 +324,7 @@ class Lookup:
         return self.call_stack.datastore.drop(self.itype, self.owner, self.name, *self.accessors)
 
 
-class AbstractDatastore:
-    def get(self, itype: IdentType, owner: str, name: str, *accessors):
-        return NotImplemented
-
-    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
-        return NotImplemented
-
-    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
-        return NotImplemented
-
-
-class BasicStore(AbstractDatastore):
+class BasicStore:
     def __init__(self, user_vars=None, server_vars=None, public_vars=None):
         self.storage = {IdentType.USER: user_vars or {},
                         IdentType.SERVER: server_vars or {},
@@ -359,17 +352,72 @@ class BasicStore(AbstractDatastore):
         elif name not in store[owner]:
             store[owner][name] = value
         else:
-            # TODO: build and execute insertion string from accessors
-            pass
+            exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
         return value
 
     def drop(self, itype: IdentType, owner: str, name: str, *accessors):
         store = self.storage[itype or IdentType.SERVER]
         if owner not in store or name not in store[owner]:
             raise DeleteNonexistent(f'"{itype.keyword()} {name}"')
-        out = store[owner][name]
+        value = store[owner][name]
         for accessor in accessors:
-            accessor.get(out)
-        # TODO: build and execute deletion string from accessors
+            accessor.get(value)
+        exec(f'del store[owner][name]{"".join(str(acc) for acc in accessors)}')
+        return value
 
+
+class PersistentStore(BasicStore):
+    def __init__(self, db_location, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.conn = sqlite3.connect(db_location)
+        self.cur = self.conn.cursor()
+        self.cur.execute("""CREATE TABLE IF NOT EXISTS variables(
+            ownership INTEGER NOT NULL,
+            owner TEXT NOT NULL,
+            name TEXT NOT NULL,
+            value BLOB,
+            PRIMARY KEY(ownership, owner, name)
+        );""")
+        self.conn.commit()
+
+    def __del__(self):
+        self.conn.commit()
+        self.conn.close()
+
+    def get(self, itype: IdentType, owner: str, name: str, *accessors):
+        try:
+            value = super().get(itype, owner, name, *accessors)
+        except FetchNonexistent:
+            res = self.cur.execute('SELECT value FROM variables WHERE ownership = ? AND owner = ? AND name = ?',
+                                   (itype, owner, name))
+            if (pickled := res.fetchone()) is None:
+                print(pickled)
+                raise
+            value = pickle.loads(pickled[0])
+        return value
+
+    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
+        super().put(itype, owner, value, name, *accessors)
+        obj = self.storage[itype or IdentType.SERVER][owner][name]
+        self.cur.execute('''INSERT INTO variables VALUES(?, ?, ?, ?)
+                             ON CONFLICT(ownership, owner, name)
+                             DO UPDATE SET value = EXCLUDED.value''', (itype, owner, name, pickle.dumps(obj)))
+        self.conn.commit()
+        return value
+
+    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
+        print('DROP!')
+        try:  # Obtain a copy of the item we intend to delete, or raise an error on deleting a missing object.
+            out = self.get(itype, owner, name, *accessors)
+        except FetchNonexistent as e:
+            raise DeleteNonexistent(e)
+        if accessors:  # On a subscript deletion, remove the target item from the cache and therefrom update the store.
+            obj = self.storage[itype][owner][name]
+            exec(f'del obj{"".join(str(acc) for acc in accessors)}')
+            self.put(itype, owner, obj, name)
+            return out
+
+        # Otherwise, just prune the whole row from the store.
+        self.cur.execute('DELETE FROM variables WHERE ownership = ? AND owner = ? AND name = ?', (itype, owner, name))
+        self.conn.commit()
         return out

@@ -585,15 +585,15 @@ class DicelangInterpreter(Interpreter):
 
     @staticmethod
     def user_identifier(tree):
-        return IdentType.USER, str(tree.children[0])
+        return IdentType.USER, str(tree.children[1])
 
     @staticmethod
     def server_identifier(tree):
-        return IdentType.SERVER, str(tree.children[0])
+        return IdentType.SERVER, str(tree.children[1])
 
     @staticmethod
     def public_identifier(tree):
-        return IdentType.PUBLIC, str(tree.children[0])
+        return IdentType.PUBLIC, str(tree.children[1])
 
     augments = {'+=': operator.iadd, '-=': operator.isub, '$=': ops.icat,
                 '*=': operator.imul, '/=': operator.itruediv, '//=': operator.ifloordiv,
@@ -699,14 +699,9 @@ if __name__ == '__main__':
     from parser import parser
     di = DicelangInterpreter()
     tests = [
-        """x = y = z = 1; delete x, y, z""",
-        """
-        con_check = () -> begin
-            con + 1d20
-        end;
-        """
+        """my x + our y"""
     ]
     for t in tests:
         ast = parser.parse(t)
-        output = di.execute(ast)
+        output = di.execute(ast, 'james')
         print(output)
