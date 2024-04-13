@@ -22,8 +22,7 @@ async def on_ready():
 
 @bot.command()
 async def roll(ctx: Context, *, arg):
-    owner = ctx.author
-    print(owner)
+    owner = str(ctx.author.id)
     result = execute(owner, arg)
     await ctx.reply(result)
 
