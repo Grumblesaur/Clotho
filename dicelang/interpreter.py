@@ -13,11 +13,13 @@ from lark.visitors import Interpreter
 from dicelang import dicecore
 from dicelang import ops
 from dicelang import utils
-from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal, Impossible,
-                        InvalidSubscript, Return, SpreadError, Terminate, UnpackError)
+from dicelang import result
+from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangException, DicelangSignal, Empty,
+                                 IllegalSignal, Impossible, InvalidSubscript, Return, SpreadError, Terminate, UnpackError)
 from dicelang.lookup import Accessor, CallStack, IdentType, Lookup
 from dicelang.special import Spread, Undefined
 from dicelang.user_function import UserFunction
+from dicelang.native import PrintQueue
 
 
 class DicelangInterpreter(Interpreter):
@@ -34,15 +36,19 @@ class DicelangInterpreter(Interpreter):
     def execute(self, tree, as_owner='clotho'):
         try:
             self.owner = as_owner
-            result = self.visit(tree)
+            value = self.visit(tree)
+            r = result.success(value=value, console=PrintQueue.flush())
         except Terminate as term:
-            result = term.unwrap()
+            r = result.success(value=term.unwrap(), console=PrintQueue.flush())
         except DicelangSignal as e:
-            raise IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
+            error = IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
+            r = result.failure(error=error, console=PrintQueue.flush())
+        except Exception as e:
+            r = result.failure(error=e, console=PrintQueue.flush())
         finally:
             self.call_stack.reset()
             self.owner = None
-        return result
+        return r
 
     def block(self, tree):
         self.call_stack.scope_push()
