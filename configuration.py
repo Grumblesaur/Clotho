@@ -1,7 +1,7 @@
 import tomllib
 
 placeholder = """[bot]
-prefix = ".clotho"
+prefix = "+"
 
 [auth]
 token = "insert-token-here"
