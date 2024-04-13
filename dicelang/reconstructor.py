@@ -1,7 +1,7 @@
 from lark.visitors import Interpreter
-from exceptions import Impossible
+from dicelang.exceptions import Impossible
 
-import utils
+import dicelang.utils
 
 
 class DicelangReconstructor(Interpreter):

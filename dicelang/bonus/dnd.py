@@ -29,3 +29,14 @@ class DND:
     @classmethod
     def dis(cls):
         return dicecore.keep_lowest(2, 20, 1)
+
+    @classmethod
+    def mod(cls, n):
+        return (n - 10) // 2
+
+    @classmethod
+    def modifiers(cls, named_stats):
+        mods = {}
+        for ability, score in named_stats.items():
+            mods[cls.ability_scores[ability]] = cls.mod(score)
+        return mods

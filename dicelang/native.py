@@ -1,5 +1,5 @@
-import statistics
 import math
+import statistics
 from numbers import Complex
 from random import shuffle
 

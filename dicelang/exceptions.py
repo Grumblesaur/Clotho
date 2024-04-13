@@ -1,4 +1,4 @@
-import special
+from dicelang import special
 
 
 class DicelangException(Exception):

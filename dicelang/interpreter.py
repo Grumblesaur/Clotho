@@ -10,14 +10,14 @@ from typing import Hashable
 
 from lark.visitors import Interpreter
 
-import dicecore
-import ops
-import utils
-from exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal, Impossible,
+from dicelang import dicecore
+from dicelang import ops
+from dicelang import utils
+from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal, Impossible,
                         InvalidSubscript, Return, SpreadError, Terminate, UnpackError)
-from lookup import Accessor, CallStack, IdentType, Lookup
-from special import Spread, Undefined
-from user_function import UserFunction
+from dicelang.lookup import Accessor, CallStack, IdentType, Lookup
+from dicelang.special import Spread, Undefined
+from dicelang.user_function import UserFunction
 
 
 class DicelangInterpreter(Interpreter):
@@ -693,15 +693,3 @@ class DicelangInterpreter(Interpreter):
                 raise Terminate(value)
             case _:
                 raise Impossible(f'unknown signal: {sig}')
-
-
-if __name__ == '__main__':
-    from parser import parser
-    di = DicelangInterpreter()
-    tests = [
-        """my x + our y"""
-    ]
-    for t in tests:
-        ast = parser.parse(t)
-        output = di.execute(ast, 'james')
-        print(output)

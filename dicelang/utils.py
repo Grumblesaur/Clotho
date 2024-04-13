@@ -2,12 +2,8 @@ from collections.abc import Iterable
 from functools import reduce
 from operator import add
 
-from exceptions import InvalidSubscript
-from special import Spread
-
-
-def serialize(x):
-    return x.serialization() if hasattr(x, 'serialization') else repr(x)
+from dicelang.exceptions import InvalidSubscript
+from dicelang.special import Spread
 
 
 class Parameter:

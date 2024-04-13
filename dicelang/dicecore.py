@@ -1,7 +1,7 @@
 from enum import Enum
 from random import randint
 
-from exceptions import ImpossibleDice
+from dicelang.exceptions import ImpossibleDice
 
 
 class Keep(Enum):

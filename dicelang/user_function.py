@@ -1,9 +1,9 @@
 from copy import deepcopy
 
-from exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
-from parser import parser
-from reconstructor import DicelangReconstructor
-from special import Undefined
+from dicelang.exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
+from dicelang.parser import parser
+from dicelang.reconstructor import DicelangReconstructor
+from dicelang.special import Undefined
 
 
 class UserFunction:

@@ -5,10 +5,10 @@ import statistics
 from fractions import Fraction
 from random import random as rand
 
-from native import (
+from dicelang.native import (
     PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof, magnitude
 )
-from bonus import dnd
+from dicelang.bonus import dnd
 
 exposed = {
     'math': math,

@@ -1,16 +1,14 @@
 import copy
+import pickle
+import sqlite3
+import threading
+import time
+from collections import Counter
 from enum import Enum, IntEnum
 
-import plugins
-from exceptions import BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible
-from utils import get_attr_or_item, some
-
-import time
-import threading
-
-import sqlite3
-import pickle
-from pathlib import Path
+from dicelang import plugins
+from dicelang.exceptions import BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible
+from dicelang.utils import get_attr_or_item, some
 
 NotLocal = object()
 NotBuiltin = object()
@@ -19,7 +17,7 @@ NotBuiltin = object()
 class CallStack:
     def __init__(self, datastore=None, frames=None):
         self.frame = 0
-        self.datastore = datastore or PersistentStore('persistence.db')
+        self.datastore = datastore or SelfPruningStore('persistence.db')
         self.frames = frames or {}
         self.anonymous = []
         self.closure = []
@@ -325,10 +323,8 @@ class Lookup:
 
 
 class BasicStore:
-    def __init__(self, user_vars=None, server_vars=None, public_vars=None):
-        self.storage = {IdentType.USER: user_vars or {},
-                        IdentType.SERVER: server_vars or {},
-                        IdentType.PUBLIC: public_vars or {}}
+    def __init__(self):
+        self.storage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}}
 
     def get(self, itype: IdentType, owner: str, name: str, *accessors):
         store = self.storage[itype or IdentType.SERVER]
@@ -367,8 +363,8 @@ class BasicStore:
 
 
 class PersistentStore(BasicStore):
-    def __init__(self, db_location, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, db_location):
+        super().__init__()
         self.conn = sqlite3.connect(db_location)
         self.cur = self.conn.cursor()
         self.cur.execute("""CREATE TABLE IF NOT EXISTS variables(
@@ -406,9 +402,9 @@ class PersistentStore(BasicStore):
         return value
 
     def drop(self, itype: IdentType, owner: str, name: str, *accessors):
-        print('DROP!')
         try:  # Obtain a copy of the item we intend to delete, or raise an error on deleting a missing object.
             out = self.get(itype, owner, name, *accessors)
+            super().drop(itype, owner, name)
         except FetchNonexistent as e:
             raise DeleteNonexistent(e)
         if accessors:  # On a subscript deletion, remove the target item from the cache and therefrom update the store.
@@ -421,3 +417,69 @@ class PersistentStore(BasicStore):
         self.cur.execute('DELETE FROM variables WHERE ownership = ? AND owner = ? AND name = ?', (itype, owner, name))
         self.conn.commit()
         return out
+
+
+class SelfPruningStore(PersistentStore):
+    def __init__(self, db_location, cycle_time=3 * 60 * 60, cycle_decay=5):
+        super().__init__(db_location)
+        self.cycle_decay = cycle_decay
+        self.usage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}}
+
+        def pruning_task(datastore):
+            while True:
+                time.sleep(cycle_time)
+                pruned = datastore.prune()
+                print(f'pruned {pruned} objects from cache')
+
+        self.pruner = threading.Thread(target=pruning_task, args=(self,), daemon=True)
+        self.pruner.start()
+        print('Self-pruning thread initiated. Culling cycle:', cycle_time / 3600, 'hours.')
+
+    def get(self, itype: IdentType, owner: str, name: str, *accessors):
+        out = super().get(itype, owner, name, *accessors)
+        usage = self.usage[itype or IdentType.SERVER]
+        if owner not in usage:
+            usage[owner] = Counter({name: 1})
+        else:
+            usage[owner][name] += 1
+        return out
+
+    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
+        out = super().put(itype, owner, value, name, *accessors)
+        usage = self.usage[itype or IdentType.SERVER]
+        if owner not in usage:
+            usage[owner] = Counter({name: 1})
+        else:
+            usage[owner][name] += 1
+        return out
+
+    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
+        out = super().drop(itype, owner, name, *accessors)
+        usage = self.usage[itype or IdentType.SERVER]
+        if owner not in usage or name not in usage[owner]:
+            return out
+        if accessors is None:
+            del usage[owner][name]
+        else:
+            usage[owner][name] += 1
+        return out
+
+    def prune(self):
+        marked = []
+        for itype in self.usage:
+            for owner in self.usage[itype]:
+                for name in self.usage[itype][owner]:
+                    if (uses := self.usage[itype][owner][name]) == 0:
+                        marked.append((itype, owner, name))
+                    else:
+                        self.usage[itype][owner][name] = max(0, uses - self.cycle_decay)
+        pruned = 0
+        for item in marked:
+            pruned += self._remove(*item)
+            print(f'prune {item} from cache')
+        return pruned
+
+    def _remove(self, itype: IdentType, owner: str, name: str):
+        del self.storage[itype][owner][name]
+        del self.usage[itype][owner][name]
+        return 1
