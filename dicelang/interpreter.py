@@ -23,9 +23,12 @@ from dicelang.native import PrintQueue
 
 
 class DicelangInterpreter(Interpreter):
+    default_owner = 'clotho'
+
     def __init__(self, call_stack=None):
         self.call_stack = call_stack or CallStack()
         self.owner = None
+        self.server = None
 
     def execute_test(self, tree):
         try:
@@ -33,11 +36,15 @@ class DicelangInterpreter(Interpreter):
         finally:
             self.call_stack.reset()
 
-    def execute(self, tree, as_owner='clotho'):
+    def execute(self, tree, as_owner: str = 'clotho', on_server: str = 'test'):
         try:
             self.owner = as_owner
+            self.server = on_server
             value = self.visit(tree)
             r = result.success(value=value, console=PrintQueue.flush())
+            self.call_stack.datastore.put(itype=IdentType.USER, owner=self.owner, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.server, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
         except Terminate as term:
             r = result.success(value=term.unwrap(), console=PrintQueue.flush())
         except DicelangSignal as e:
@@ -48,13 +55,14 @@ class DicelangInterpreter(Interpreter):
         finally:
             self.call_stack.reset()
             self.owner = None
+            self.server = None
         return r
 
     def block(self, tree):
         self.call_stack.scope_push()
-        result = self.visit_children(tree)[-2]
+        r = self.visit_children(tree)[-2]
         self.call_stack.scope_pop()
-        return result
+        return r
 
     def if_block(self, tree):
         _, condition, _, body = tree.children
@@ -680,7 +688,10 @@ class DicelangInterpreter(Interpreter):
         return self.visit(tree.children[0])
 
     def deletion(self, tree):
-        return tuple(target.drop() for target in self.visit_children(tree)[1:])
+        deleted = tuple(target.drop() for target in self.visit_children(tree)[1:])
+        if len(deleted) == 1:
+            return deleted[0]
+        return deleted
 
     def keyword(self, tree):
         evaluated = self.visit_children(tree)

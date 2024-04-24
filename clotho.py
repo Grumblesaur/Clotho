@@ -22,11 +22,11 @@ async def on_ready():
     print(f'Connected to {ilen(bot.guilds)} server(s).')
 
 
-@bot.command(name='roll', help="Accept a dicelang procedure and send the result back as a message.")
+@bot.command(name='roll', help="Excecute a Dicelang procedure and display the result.")
 async def roll(ctx: Context, *, dicelang: str = parameter(description='An expression or script in Dicelang.')):
     owner = ctx.author
     async with ctx.typing():
-        result = execute(str(owner.id), dicelang)
+        result = execute(str(owner.id), str(ctx.guild.id), dicelang)
         try:
             await ctx.reply(embed=reply.roll_embed(dicelang, owner, result))
         except reply.EmbedTooLarge:
