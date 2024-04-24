@@ -49,7 +49,7 @@ async def docs(ctx: Context, *, keyword: str = parameter(description="A topic to
             markdown = helpfiles.retrieve(keyword)
         except helpfiles.InvalidHelpTopic:
             topic_list = '- ' + '\n- '.join(sorted(helpfiles.retrieve.topics.keys()))
-            markdown = f"""No help file defined for `keyword`. Try one of the following topics:\n{topic_list}"""
+            markdown = f"""No help file defined for `{keyword}`. Try one of the following topics:\n{topic_list}"""
         await ctx.reply(content=markdown)
 
 bot.run(token)
