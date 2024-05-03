@@ -3,6 +3,7 @@ import itertools
 import math
 import operator
 import random
+import traceback
 from collections.abc import Iterable, Sequence
 from functools import partialmethod
 from numbers import Complex
@@ -52,6 +53,7 @@ class DicelangInterpreter(Interpreter):
             r = result.failure(error=error, console=PrintQueue.flush())
         except Exception as e:
             r = result.failure(error=e, console=PrintQueue.flush())
+            traceback.print_tb(e.__traceback__)
         finally:
             self.call_stack.reset()
             self.owner = None
@@ -189,7 +191,7 @@ class DicelangInterpreter(Interpreter):
         return -operand
 
     def unary_plus(self, tree):
-        operand = self.visit_children(tree)
+        operand = self.visit_children(tree)[0]
         if isinstance(operand, (int, float, complex)):
             return +operand
         return operand
@@ -302,7 +304,7 @@ class DicelangInterpreter(Interpreter):
         return ~operand
 
     def sum_or_join(self, tree):
-        operand = self.visit_children(tree)
+        operand = self.visit_children(tree)[0]
         if isinstance(operand, Iterable) and not isinstance(operand, str):
             return utils.vector_sum(operand)
         elif isinstance(operand, Complex):

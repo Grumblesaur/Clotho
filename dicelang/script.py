@@ -10,8 +10,9 @@ def execute(owner: str, server: str, dicelang_script: str):
     try:
         ast = parser.parse(dicelang_script)
     except lark.LarkError as e:
-        r = result.failure(error=e, console="Parsing error. You may have mistyped a keyword, failed "
-                                            "to put a string in quotes, or misused an operator.")
+        r = result.failure(error=e, console="Parsing error. You may have mistyped a keyword, forgot"
+                                            " string quotes, mismatched parentheses or brackets, or used"
+                                            " an operator incorrectly.")
     else:
         r = interpreter.execute(ast, as_owner=owner, on_server=server)
     return r
