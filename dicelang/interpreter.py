@@ -31,7 +31,7 @@ class DicelangInterpreter(Interpreter):
     def __init__(self, call_stack=None, time_limit_seconds: int | None = 15):
         self.call_stack = call_stack or CallStack()
         self.ownership = None
-        self.command_limit = time_limit_seconds or None
+        self.command_limit = datetime.timedelta(time_limit_seconds) if time_limit_seconds else None
         self.start_time = None
         self.limited = self.command_limit is not None
 
@@ -67,7 +67,7 @@ class DicelangInterpreter(Interpreter):
     def check_excessive_runtime(self, action: str, limit=None):
         if self.limited:
             now = datetime.datetime.now()
-            delta = limit or self.command_limit
+            delta = datetime.timedelta(limit) if limit else self.command_limit
             if (tm := now - self.start_time) > delta:
                 raise ExcessiveRuntime(f'{tm.seconds} seconds to {action} (limit: {delta.seconds})')
 
@@ -122,15 +122,19 @@ class DicelangInterpreter(Interpreter):
         match name := self.visit(ident):
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
+                owner = self.ownership.server
             case (IdentType.USER, x):
                 action = Lookup.user
+                owner = self.ownership.user
             case (IdentType.SERVER, x):
                 action = Lookup.server
+                owner = self.ownership.server
             case (IdentType.PUBLIC, x):
                 action = Lookup.public
+                owner = self.default_owner
             case _:
                 raise Impossible(f"can't assign for loop variable {name}")
-        loop_variable = action(self.call_stack, self.owner, x)
+        loop_variable = action(self.call_stack, owner, x)
         results = []
         try:
             for x in self.visit(iterable):
