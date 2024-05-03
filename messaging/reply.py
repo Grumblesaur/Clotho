@@ -27,7 +27,7 @@ class AttachmentTooLarge(ReplyError):
 
 
 def roll_embed(m: str, t: discord.User, r: result.Result) -> discord.Embed:
-    em = discord.Embed(title=f'Roll', description=f'```{m}```', color=t.color)
+    em = discord.Embed(title=f'Roll', description=f'```\n{m.strip()}```', color=t.color)
     em.set_author(name=t.display_name)
     if r.console:
         em.add_field(name='Message', value=f'```diff\n{r.console}```', inline=False)

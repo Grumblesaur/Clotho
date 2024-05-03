@@ -4,6 +4,7 @@ import sqlite3
 import threading
 import time
 import os
+import sys
 from collections import Counter
 from enum import Enum, IntEnum
 
@@ -18,6 +19,14 @@ NotBuiltin = object()
 
 IS_TEST = 'dicelang.lark' in set(os.listdir(os.getcwd()))
 
+class Ownership:
+    def __init__(self, user: str, server: str):
+        self.user = user
+        self.server = server
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.user!r}, {self.server!r})'
+
 
 class CallStack:
     def __init__(self, datastore=None, frames=None):
@@ -26,9 +35,14 @@ class CallStack:
         self.frames = frames or {}
         self.anonymous = []
         self.closure = []
+        self.ownership = None
+
+    def set_ownership(self, ownership: Ownership):
+        self.ownership = ownership
 
     def reset(self):
         self.frame = 0
+        self.ownership = None
         self.frames.clear()
         self.anonymous.clear()
         self.closure.clear()
@@ -117,7 +131,7 @@ class CallStack:
                 for scope in reversed(self.anonymous):
                     if key in scope:
                         return scope[key]
-            return NotLocal
+            return self.datastore.get(IdentType.SERVER, self.ownership.server, key)
 
         for scope in reversed(frame):
             if key in scope:
@@ -134,6 +148,8 @@ class CallStack:
                 if key in scope:
                     scope[key] = value
                     return value
+                if len(self.anonymous) == 1:
+                    return self.datastore.put(IdentType.SERVER, self.ownership.server, value, key)
             self.scope_top[key] = value
             return value
         for scope in frame:
@@ -150,6 +166,11 @@ class CallStack:
                     out = scope[key]
                     del scope[key]
                     return out
+            if len(self.anonymous) == 1:
+                try:
+                    return self.datastore.drop(IdentType.SERVER, self.ownership.server, key)
+                except DeleteNonexistent:
+                    pass
             raise NoSuchVariable(f"No local variable called `{key}`.")
         for scope in reversed(frame):
             if key in scope:
@@ -284,7 +305,7 @@ class Lookup:
         self.call_stack = call_stack
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.itype, self.call_stack, self.owner, self.name, self.accessors})'
+        return f'{self.__class__.__name__}({self.itype!r}, {self.call_stack!r}, {self.owner!r}, {self.name!r}, {self.accessors!r})'
 
     @classmethod
     def scoped(cls, call_stack, owner, name, *accessors):

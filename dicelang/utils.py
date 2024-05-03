@@ -23,8 +23,7 @@ def get_attr_or_item(obj, name):
         return getattr(obj, name)
     try:
         out = obj[name]
-    except (TypeError, KeyError) as e:
-        print(e)
+    except (TypeError, KeyError):
         raise InvalidSubscript(f'builtin object {obj} or module has no attribute, key, or index {name!r}')
     return out
 

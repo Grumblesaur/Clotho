@@ -19,7 +19,7 @@ from dicelang import result
 from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal,
                                  Impossible, InvalidSubscript, Return, SpreadError, Terminate, UnpackError,
                                  ExcessiveRuntime)
-from dicelang.lookup import Accessor, CallStack, IdentType, Lookup
+from dicelang.lookup import Accessor, CallStack, IdentType, Lookup, Ownership
 from dicelang.special import Spread, Undefined
 from dicelang.user_function import UserFunction
 from dicelang.native import PrintQueue
@@ -30,8 +30,7 @@ class DicelangInterpreter(Interpreter):
 
     def __init__(self, call_stack=None, time_limit_seconds: int | None = 15):
         self.call_stack = call_stack or CallStack()
-        self.owner = None
-        self.server = None
+        self.ownership = None
         self.command_limit = time_limit_seconds or None
         self.start_time = None
         self.limited = self.command_limit is not None
@@ -44,14 +43,13 @@ class DicelangInterpreter(Interpreter):
 
     def execute(self, tree, as_owner: str = 'clotho', on_server: str = 'test'):
         try:
-            self.owner = as_owner
-            self.server = on_server
+            self.ownership = Ownership(user=as_owner, server=on_server)
+            self.call_stack.set_ownership(self.ownership)
             self.start_time = datetime.datetime.now()
-            print(tree)
             value = self.visit(tree)
             r = result.success(value=value, console=PrintQueue.flush())
-            self.call_stack.datastore.put(itype=IdentType.USER, owner=self.owner, value=value, name='_')
-            self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.server, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.USER, owner=self.ownership.user, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.ownership.server, value=value, name='_')
             self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
         except Terminate as term:
             r = result.success(value=term.unwrap(), console=PrintQueue.flush())
@@ -63,8 +61,6 @@ class DicelangInterpreter(Interpreter):
             traceback.print_tb(e.__traceback__)
         finally:
             self.call_stack.reset()
-            self.owner = None
-            self.server = None
             self.start_time = None
         return r
 
@@ -590,7 +586,7 @@ class DicelangInterpreter(Interpreter):
             case _:
                 raise Impossible(f"can't retrieve: {name!r} {accessors!r}")
 
-        return action(self.call_stack, self.owner, x, *accessors)
+        return action(self.call_stack, self.ownership.server, x, *accessors)
 
     def retrieval(self, tree):
         return self.visit(tree.children[0]).get()
