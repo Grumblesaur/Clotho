@@ -1,3 +1,4 @@
+import lark
 from dicelang.interpreter import DicelangInterpreter
 from dicelang.parser import parser
 from dicelang.result import Result

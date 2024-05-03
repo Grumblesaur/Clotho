@@ -13,6 +13,7 @@ from dicelang import plugins
 from dicelang.exceptions import BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible, \
     NoSuchVariable
 from dicelang.utils import get_attr_or_item, some
+from dicelang.special import Undefined
 
 NotLocal = object()
 NotBuiltin = object()
@@ -414,9 +415,9 @@ class PersistentStore(BasicStore):
             res = self.cur.execute('SELECT value FROM variables WHERE ownership = ? AND owner = ? AND name = ?',
                                    (itype, owner, name))
             if (pickled := res.fetchone()) is None:
-                print(pickled)
-                raise
-            value = pickle.loads(pickled[0])
+                value = Undefined
+            else:
+                value = pickle.loads(pickled[0])
         return value
 
     def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
