@@ -56,7 +56,6 @@ slice: expr -> index_or_key
 
 
 expr: assignment
-    | deletion
 
 deletion: KW_DELETE access ("," access)* ","?
 assignment: lvalue OP_ASSIGN rvalue -> assignment_single
@@ -65,6 +64,7 @@ assignment: lvalue OP_ASSIGN rvalue -> assignment_single
           | /\*/ lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack_left
           | (lvalue ",")+ /\*/ lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack_middle
           | (lvalue ",")+ /\*/ lvalue OP_ASSIGN rvalue -> assignment_unpack_right
+          | deletion
           | augmented
 
 augmented: lvalue OP_AUGMENT rvalue -> augmented_any

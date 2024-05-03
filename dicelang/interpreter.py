@@ -680,7 +680,8 @@ class DicelangInterpreter(Interpreter):
         return self.visit(tree.children[0])
 
     def deletion(self, tree):
-        return tuple(target.drop() for target in self.visit_children(tree)[1:])
+        deleted = tuple(target.drop() for target in self.visit_children(tree)[1:])
+        return deleted[0] if len(deleted) == 1 else deleted
 
     def keyword(self, tree):
         evaluated = self.visit_children(tree)

@@ -2,7 +2,7 @@ NotSpecified = object
 
 
 class Result:
-    def __init__(self, *, value=None, console: str = None, error=None):
+    def __init__(self, *, value=None, console: str | None = None, error: Exception | None = None):
         self.value = value
         self.console = console
         self.error = error
