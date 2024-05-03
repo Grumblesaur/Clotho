@@ -6,7 +6,7 @@ from dicelang import result
 
 EMBED_FIELD_LIMIT = 1024        # 1 KB
 EMBED_DESCRIPTION_LIMIT = 4096  # 4 KB
-CONTENT_LIMIT = 4000            # 4000 characters
+CONTENT_LIMIT = 2000            # 2000 characters
 FILE_LIMIT = 25 * 1024 * 1024   # 25 MB
 
 

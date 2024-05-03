@@ -306,7 +306,9 @@ class DicelangReconstructor(Interpreter):
         return f'{left}{right}'
 
     def function_call(self, tree):
-        callee, args = self.visit_children(tree)
+        callee, *args = self.visit_children(tree)
+        if args:
+            args = args[0]
         return f'{callee}({args})'
 
     def spread_unpackable(self, tree):

@@ -1,3 +1,4 @@
+import datetime
 import inspect
 import itertools
 import math
@@ -16,7 +17,8 @@ from dicelang import ops
 from dicelang import utils
 from dicelang import result
 from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangException, DicelangSignal, Empty,
-                                 IllegalSignal, Impossible, InvalidSubscript, Return, SpreadError, Terminate, UnpackError)
+                                 IllegalSignal, Impossible, InvalidSubscript, Return, SpreadError, Terminate,
+                                 UnpackError, ExcessiveRuntime)
 from dicelang.lookup import Accessor, CallStack, IdentType, Lookup
 from dicelang.special import Spread, Undefined
 from dicelang.user_function import UserFunction
@@ -26,10 +28,13 @@ from dicelang.native import PrintQueue
 class DicelangInterpreter(Interpreter):
     default_owner = 'clotho'
 
-    def __init__(self, call_stack=None):
+    def __init__(self, call_stack=None, time_limit_seconds: int | None = 15):
         self.call_stack = call_stack or CallStack()
         self.owner = None
         self.server = None
+        self.command_limit = time_limit_seconds or None
+        self.start_time = None
+        self.limited = self.command_limit is not None
 
     def execute_test(self, tree):
         try:
@@ -41,6 +46,7 @@ class DicelangInterpreter(Interpreter):
         try:
             self.owner = as_owner
             self.server = on_server
+            self.start_time = datetime.datetime.now()
             value = self.visit(tree)
             r = result.success(value=value, console=PrintQueue.flush())
             self.call_stack.datastore.put(itype=IdentType.USER, owner=self.owner, value=value, name='_')
@@ -58,7 +64,16 @@ class DicelangInterpreter(Interpreter):
             self.call_stack.reset()
             self.owner = None
             self.server = None
+            self.start_time = None
         return r
+
+    def check_excessive_runtime(self, action: str, limit=None):
+        if not self.limited:
+            return
+        now = datetime.datetime.now()
+        delta = limit or self.command_limit
+        if (tm := now - self.start_time) > delta:
+            raise ExcessiveRuntime(f'{tm.seconds} seconds to {action} (limit: {delta.seconds})')
 
     def block(self, tree):
         self.call_stack.scope_push()
@@ -84,6 +99,7 @@ class DicelangInterpreter(Interpreter):
                 except Continue as c:
                     if c:
                         results.append(c)
+                self.check_excessive_runtime("to execute command with loop")
         except Break as b:
             if b:
                 results.append(b.value)
@@ -99,6 +115,7 @@ class DicelangInterpreter(Interpreter):
                 except Continue as c:
                     if c:
                         results.append(c.value)
+                self.check_excessive_runtime("to execute command with loop")
         except Break as b:
             if b:
                 results.append(b.value)
@@ -127,6 +144,7 @@ class DicelangInterpreter(Interpreter):
                 except Continue as c:
                     if c:
                         results.append(c.value)
+                self.check_excessive_runtime("to execute command with loop")
         except Break as b:
             if b:
                 results.append(b.value)
@@ -182,6 +200,20 @@ class DicelangInterpreter(Interpreter):
 
     def exponent(self, tree):
         mantissa, superscript = self.visit_children(tree)
+
+        # Large integer exponentiation can stall execution. Whenever a float or a negative
+        # exponent is involved, though, the limitations of floating point representation
+        # will keep this from hanging.
+        if self.limited and isinstance(mantissa, int) and isinstance(superscript, int):
+            if superscript >= 1000000:
+                product = 1
+                start = datetime.datetime.now()
+                limit = datetime.timedelta(seconds=5)
+                while superscript > 0:
+                    product *= mantissa
+                    superscript -= 1
+                    self.check_excessive_runtime("to compute exponentiation", limit=limit)
+                return product
         return mantissa ** superscript
 
     def unary_minus(self, tree):

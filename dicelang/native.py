@@ -1,5 +1,7 @@
 import math
 import statistics
+import functools
+import operator
 from numbers import Complex
 from random import shuffle
 
@@ -81,3 +83,7 @@ def magnitude(x: Number) -> Real:
     if isinstance(x, Complex):
         return abs(x)
     return math.ceil(math.log10(x))
+
+
+def product(xs, start=1):
+    return functools.reduce(operator.mul, xs, start)

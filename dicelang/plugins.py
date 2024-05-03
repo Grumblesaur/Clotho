@@ -6,7 +6,7 @@ from fractions import Fraction
 from random import random as rand
 
 from dicelang.native import (
-    PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof, magnitude
+    PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof, magnitude, product
 )
 from dicelang.bonus import dnd
 
@@ -30,6 +30,7 @@ exposed = {
     'median': statistics.median,
     'average': statistics.mean,
     'sum': sum,
+    'product': product,
     'isinstance': isinstance,
     'typeof': typeof,
     'typename': typename,
