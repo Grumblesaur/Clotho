@@ -16,7 +16,7 @@ class _Singleton:
         return cls._instance
 
 
-class Undefined(_Singleton):
+class _Undefined(_Singleton):
     def __repr__(self):
         return "Undefined"
 
@@ -24,4 +24,4 @@ class Undefined(_Singleton):
         return False
 
 
-Undefined = Undefined()
+Undefined = _Undefined()

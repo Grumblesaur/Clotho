@@ -9,12 +9,13 @@ interpreter = DicelangInterpreter()
 def execute(owner: str, server: str, dicelang_script: str) -> Result:
     try:
         ast = parser.parse(dicelang_script)
-    except Exception as e:
-        result = Result(console="Parsing error. You may have mistyped a keyword, failed to put a string in quotes"
-                                " or misused an operator.", error=str(e).split('Expected')[0])
+    except lark.LarkError as e:
+        r = result.failure(error=e, console="Parsing error. You may have mistyped a keyword, forgot"
+                                            " string quotes, mismatched parentheses or brackets, or used"
+                                            " an operator incorrectly.")
     else:
-        result = interpreter.execute(ast, as_owner=owner, on_server=server)
-    return result
+        r = interpreter.execute(ast, as_owner=owner, on_server=server)
+    return r
 
 
 if __name__ == '__main__':
