@@ -3,22 +3,26 @@ import pickle
 import sqlite3
 import threading
 import time
+import os
 from collections import Counter
 from enum import Enum, IntEnum
 
 from dicelang import plugins
-from dicelang.exceptions import BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible
+from dicelang.exceptions import BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible, \
+    NoSuchVariable
 from dicelang.utils import get_attr_or_item, some
 from dicelang.special import Undefined
 
 NotLocal = object()
 NotBuiltin = object()
 
+IS_TEST = 'dicelang.lark' in set(os.listdir(os.getcwd()))
+
 
 class CallStack:
     def __init__(self, datastore=None, frames=None):
         self.frame = 0
-        self.datastore = datastore or SelfPruningStore('persistence.db')
+        self.datastore = datastore or SelfPruningStore(f'{"../" if IS_TEST else ""}persistence.db')
         self.frames = frames or {}
         self.anonymous = []
         self.closure = []
@@ -146,6 +150,7 @@ class CallStack:
                     out = scope[key]
                     del scope[key]
                     return out
+            raise NoSuchVariable(f"No local variable called `{key}`.")
         for scope in reversed(frame):
             if key in scope:
                 out = scope[key]

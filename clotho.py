@@ -1,6 +1,7 @@
 import os
 import discord
 import configuration
+import helpfiles
 from messaging import reply
 from dicelang.script import execute
 from more_itertools import ilen
@@ -21,11 +22,11 @@ async def on_ready():
     print(f'Connected to {ilen(bot.guilds)} server(s).')
 
 
-@bot.command(name='roll', help="Accept a dicelang procedure and send the result back as a message.")
+@bot.command(name='roll', help="Excecute a Dicelang procedure and display the result.")
 async def roll(ctx: Context, *, dicelang: str = parameter(description='An expression or script in Dicelang.')):
     owner = ctx.author
     async with ctx.typing():
-        result = execute(str(owner.id), dicelang)
+        result = execute(str(owner.id), str(ctx.guild.id), dicelang)
         try:
             await ctx.reply(embed=reply.roll_embed(dicelang, owner, result))
         except reply.EmbedTooLarge:
@@ -44,6 +45,11 @@ async def roll(ctx: Context, *, dicelang: str = parameter(description='An expres
 @bot.command(name='docs', help="Access the documentation for the Dicelang language.")
 async def docs(ctx: Context, *, keyword: str = parameter(description="A topic to request help on.")):
     async with ctx.typing():
-        print('help requested for:', keyword)
+        try:
+            markdown = helpfiles.retrieve(keyword)
+        except helpfiles.InvalidHelpTopic:
+            topic_list = '- ' + '\n- '.join(sorted(helpfiles.retrieve.topics.keys()))
+            markdown = f"""No help file defined for `{keyword}`. Try one of the following topics:\n{topic_list}"""
+        await ctx.reply(content=markdown)
 
 bot.run(token)

@@ -1,15 +1,10 @@
 ## Quickstart
 
-This is a quick guide for some Dicelang operations when using Clotho. If you
-want Clotho to see your message, make sure to start it with `+roll`. If this
-would trigger another bot as well, you can use `+roll` instead.
+This is a quick guide for some Dicelang operations when using Clotho. If you want Clotho to see your message, make sure to start it with `+roll`. If this would trigger another bot as well, you can use `+roll` instead.
 
-The person who manages your server's Clotho instance may have changed the `+`
-prefix to some other character (e.g. `$` for `$roll` instead), but all
-documentation will assume `+` for consistency. The correct prefix will always
-be indicated in Clotho's Discord status.
+The person who manages your server's Clotho instance may have changed the `+` prefix to some other character (e.g. `$` for `$roll` instead), but all documentation will assume `+` for consistency. The correct prefix will always be indicated in Clotho's Discord status.
 
-Roll dice (Examples)
+### Roll dice (Examples)
 ```
   +roll 1d20    ~ a twenty-sided die
   +roll 4d6     ~ sum of 4 six-sided dice
@@ -40,25 +35,28 @@ For the rest of the examples, we'll exclude the `+roll` prefix.
              ~   adds sum to a list.
              ~ Returns list.
 ```
-These are all examples of expressions, which can be combined to your heart's
-content. You can roll two different dice and add their totals together,
+
+These are all examples of expressions, which can be combined to your heart's  content. You can roll two different dice and add their totals together,
+
 ```
   1d6 + 1d10
 ```
+
 or modify a roll
+
 ```
   1d100 - 10
   10 * 5d4
   10 / 1d20
 ```
-Exponents (Examples)
+
+### Exponents (Examples)
 ```
   3 ** 2      ~ gives 9
   10 ** (-1)  ~ gives 0.1
 ```
-Just like with regular math, Atropos' dice engine adheres to an order of
-operations (also known as operator precedence). For the operations defined
-above, the order of precedence is:
+
+Just like with regular math, Atropos' dice engine adheres to an order of  operations (also known as operator precedence). For the operations defined above, the order of precedence is:
   * parentheses
   * dice
   * exponents
@@ -66,6 +64,4 @@ above, the order of precedence is:
   * multiplication and division
   * addition and subtraction
 
-There are many more operations left out of the quickstart guide, but these are
-all most games require. Other help topics will explain other features, and
-elaborate on the ones listed.
+There are many more operations left out of the quickstart guide, but these are all most games require. Other help topics will explain other features, and elaborate on the ones listed.

@@ -9,6 +9,10 @@ class DicelangException(Exception):
 Empty = object()
 
 
+class ParseError(DicelangException):
+    pass
+
+
 class DicelangSignal(DicelangException):
     """Branch of the exception hierarchy for flow control. These
     exceptions can optionally capture a value, which will be used
@@ -69,6 +73,10 @@ class MissingScope(ProgrammingError):
 
 
 class Impossible(ProgrammingError):
+    pass
+
+
+class NoSuchVariable(ProgrammingError):
     pass
 
 
