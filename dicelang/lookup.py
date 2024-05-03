@@ -6,6 +6,7 @@ import time
 import os
 from pathlib import Path
 from typing import Any, Protocol, Hashable, Iterable, Self
+import sys
 from collections import Counter
 from enum import Enum, IntEnum
 
@@ -22,6 +23,14 @@ Frame = list[Scope]
 LookupResult = Any
 Location = Path | str
 IS_TEST = 'dicelang.lark' in set(os.listdir(os.getcwd()))
+
+class Ownership:
+    def __init__(self, user: str, server: str):
+        self.user = user
+        self.server = server
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.user!r}, {self.server!r})'
 
 
 class Subscriptable(Protocol):
@@ -42,6 +51,13 @@ class CallStack:
     def __init__(self, datastore=None, frames=None):
         self.frame: int = 0
         self.datastore = datastore or SelfPruningStore(f'{"../" if IS_TEST else ""}persistence.db')
+        self.frames = frames or {}
+        self.anonymous = []
+        self.closure = []
+        self.ownership = None
+
+    def set_ownership(self, ownership: Ownership):
+        self.ownership = ownership
         self.frames: dict = frames or {}
         self.anonymous: list = []
         self.closure: list = []
@@ -303,7 +319,7 @@ class Lookup:
         self.call_stack = call_stack
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.itype, self.call_stack, self.owner, self.name, self.accessors})'
+        return f'{self.__class__.__name__}({self.itype!r}, {self.call_stack!r}, {self.owner!r}, {self.name!r}, {self.accessors!r})'
 
     @classmethod
     def scoped(cls, call_stack: CallStack, owner: str, name: str, *accessors: Accessor) -> Self:
