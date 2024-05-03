@@ -16,9 +16,9 @@ from dicelang import dicecore
 from dicelang import ops
 from dicelang import utils
 from dicelang import result
-from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangException, DicelangSignal, Empty,
-                                 IllegalSignal, Impossible, InvalidSubscript, Return, SpreadError, Terminate,
-                                 UnpackError, ExcessiveRuntime)
+from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal,
+                                 Impossible, InvalidSubscript, Return, SpreadError, Terminate, UnpackError,
+                                 ExcessiveRuntime)
 from dicelang.lookup import Accessor, CallStack, IdentType, Lookup
 from dicelang.special import Spread, Undefined
 from dicelang.user_function import UserFunction
@@ -47,6 +47,7 @@ class DicelangInterpreter(Interpreter):
             self.owner = as_owner
             self.server = on_server
             self.start_time = datetime.datetime.now()
+            print(tree)
             value = self.visit(tree)
             r = result.success(value=value, console=PrintQueue.flush())
             self.call_stack.datastore.put(itype=IdentType.USER, owner=self.owner, value=value, name='_')
@@ -68,12 +69,11 @@ class DicelangInterpreter(Interpreter):
         return r
 
     def check_excessive_runtime(self, action: str, limit=None):
-        if not self.limited:
-            return
-        now = datetime.datetime.now()
-        delta = limit or self.command_limit
-        if (tm := now - self.start_time) > delta:
-            raise ExcessiveRuntime(f'{tm.seconds} seconds to {action} (limit: {delta.seconds})')
+        if self.limited:
+            now = datetime.datetime.now()
+            delta = limit or self.command_limit
+            if (tm := now - self.start_time) > delta:
+                raise ExcessiveRuntime(f'{tm.seconds} seconds to {action} (limit: {delta.seconds})')
 
     def block(self, tree):
         self.call_stack.scope_push()
@@ -166,10 +166,6 @@ class DicelangInterpreter(Interpreter):
         repeatable, repeats = tree.children
         return [self.visit(repeatable) for _ in range(self.visit(repeats))]
 
-    def die_unary(self, tree):
-        _, sides = self.visit(tree.children[0])
-        return dicecore.keep_all(1, sides)
-
     def die_binary(self, tree):
         dice, _, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides)
@@ -181,10 +177,6 @@ class DicelangInterpreter(Interpreter):
     def die_ternary_low(self, tree):
         dice, _, sides, _, keep = self.visit_children(tree)
         return dicecore.keep_lowest(dice, sides, keep)
-
-    def roll_unary(self, tree):
-        _, sides = self.visit(tree.children[0])
-        return dicecore.keep_all(1, sides, as_sum=False)
 
     def roll_binary(self, tree):
         dice, _, sides = self.visit_children(tree)
@@ -207,7 +199,6 @@ class DicelangInterpreter(Interpreter):
         if self.limited and isinstance(mantissa, int) and isinstance(superscript, int):
             if superscript >= 1000000:
                 product = 1
-                start = datetime.datetime.now()
                 limit = datetime.timedelta(seconds=5)
                 while superscript > 0:
                     product *= mantissa
