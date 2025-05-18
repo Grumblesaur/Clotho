@@ -6,7 +6,7 @@ from dicelang import result
 
 EMBED_FIELD_LIMIT = 1024        # 1 KB
 EMBED_DESCRIPTION_LIMIT = 4096  # 4 KB
-CONTENT_LIMIT = 4000            # 4000 characters
+CONTENT_LIMIT = 2000            # 2000 characters
 FILE_LIMIT = 25 * 1024 * 1024   # 25 MB
 
 
@@ -27,14 +27,14 @@ class AttachmentTooLarge(ReplyError):
 
 
 def roll_embed(m: str, t: discord.User, r: result.Result) -> discord.Embed:
-    em = discord.Embed(title=f'Roll', description=f'```{m}```', color=t.color)
+    em = discord.Embed(title=f'Roll', description=f'```\n{m.strip()}```', color=t.color)
     em.set_author(name=t.display_name)
     if r.console:
         em.add_field(name='Message', value=f'```diff\n{r.console}```', inline=False)
     if r.value is not None:
         em.add_field(name='Result', value=f'```diff\n{r.value}```', inline=False)
     if r.error is not None:
-        em.add_field(name='Error', value=f'```diff\n{r.error}```', inline=False)
+        em.add_field(name='Error', value=f'```diff\n{r.error.__class__.__name__}: {r.error}```', inline=False)
     if len(em.description) > EMBED_DESCRIPTION_LIMIT:
         raise EmbedTooLarge('description')
     for field in em.fields:

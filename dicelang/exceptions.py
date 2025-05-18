@@ -86,6 +86,10 @@ class DicelangRuntimeError(DicelangException):
     pass
 
 
+class ExcessiveRuntime(DicelangRuntimeError):
+    pass
+
+
 class DuplicateParameter(DicelangRuntimeError):
     pass
 
