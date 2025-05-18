@@ -1,7 +1,7 @@
 from enum import Enum
 from random import randint
-
 from dicelang.exceptions import ImpossibleDice
+RollResult = int | list[int]
 
 
 class Keep(Enum):
@@ -10,7 +10,7 @@ class Keep(Enum):
     HIGH = 1
 
 
-def kernel(dice: int, sides: int, mode=Keep.ALL, kept=1, as_sum=True):
+def kernel(dice: int, sides: int, mode: Keep = Keep.ALL, kept: int = 1, as_sum: bool = True) -> RollResult:
     rolls = (randint(1, sides) for _ in range(dice))
     if mode == Keep.ALL:
         return (sum if as_sum else list)(rolls)
@@ -21,13 +21,13 @@ def kernel(dice: int, sides: int, mode=Keep.ALL, kept=1, as_sum=True):
     return sum(results) if as_sum else results
 
 
-def keep_all(dice, sides, as_sum=True):
+def keep_all(dice: int, sides: int, as_sum: bool = True) -> RollResult:
     return kernel(dice, sides, Keep.ALL, as_sum=as_sum)
 
 
-def keep_highest(dice, sides, kept, as_sum=True):
+def keep_highest(dice: int, sides: int, kept: int, as_sum: bool = True) -> RollResult:
     return kernel(dice, sides, Keep.HIGH, kept, as_sum)
 
 
-def keep_lowest(dice, sides, kept, as_sum=True):
+def keep_lowest(dice: int, sides: int, kept: int, as_sum: bool = True) -> RollResult:
     return kernel(dice, sides, Keep.LOW, kept, as_sum)
