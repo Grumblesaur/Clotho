@@ -51,6 +51,7 @@ class DicelangInterpreter(Interpreter):
             error = IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
             r = result.failure(error=error, console=PrintQueue.flush())
         except Exception as e:
+            print(e.__class__, e)
             r = result.failure(error=e, console=PrintQueue.flush())
         finally:
             self.call_stack.reset()
@@ -564,7 +565,6 @@ class DicelangInterpreter(Interpreter):
                 action = Lookup.public
             case _:
                 raise Impossible(f"can't retrieve: {name!r} {accessors!r}")
-
         return action(self.call_stack, self.owner, x, *accessors)
 
     def retrieval(self, tree):

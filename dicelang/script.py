@@ -5,7 +5,7 @@ from dicelang.result import Result
 interpreter = DicelangInterpreter()
 
 
-def execute(owner: str, server: str, dicelang_script: str):
+def execute(owner: str, server: str, dicelang_script: str) -> Result:
     try:
         ast = parser.parse(dicelang_script)
     except Exception as e:
