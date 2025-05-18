@@ -122,19 +122,15 @@ class DicelangInterpreter(Interpreter):
         match name := self.visit(ident):
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
-                owner = self.ownership.server
             case (IdentType.USER, x):
                 action = Lookup.user
-                owner = self.ownership.user
             case (IdentType.SERVER, x):
                 action = Lookup.server
-                owner = self.ownership.server
             case (IdentType.PUBLIC, x):
                 action = Lookup.public
-                owner = self.default_owner
             case _:
                 raise Impossible(f"can't assign for loop variable {name}")
-        loop_variable = action(self.call_stack, owner, x)
+        loop_variable = action(self.call_stack, self.ownership, x)
         results = []
         try:
             for x in self.visit(iterable):
@@ -589,7 +585,6 @@ class DicelangInterpreter(Interpreter):
                 action = Lookup.public
             case _:
                 raise Impossible(f"can't retrieve: {name!r} {accessors!r}")
-
         return action(self.call_stack, self.ownership, x, *accessors)
 
     def retrieval(self, tree):
