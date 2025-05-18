@@ -22,6 +22,8 @@ LookupResult = Any
 Location = Path | str
 IS_TEST = 'dicelang.lark' in set(os.listdir(os.getcwd()))
 
+### GIT SUCKS ###
+
 
 class Subscriptable(Protocol):
     def __getitem__(self, key_or_slice: Hashable) -> Any:
