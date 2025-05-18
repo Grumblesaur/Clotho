@@ -590,7 +590,7 @@ class DicelangInterpreter(Interpreter):
             case _:
                 raise Impossible(f"can't retrieve: {name!r} {accessors!r}")
 
-        return action(self.call_stack, self.ownership.server, x, *accessors)
+        return action(self.call_stack, self.ownership, x, *accessors)
 
     def retrieval(self, tree):
         return self.visit(tree.children[0]).get()

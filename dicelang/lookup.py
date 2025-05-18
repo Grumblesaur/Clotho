@@ -6,7 +6,6 @@ import time
 import os
 from pathlib import Path
 from typing import Any, Protocol, Hashable, Iterable, Self
-import sys
 from collections import Counter
 from enum import Enum, IntEnum
 
@@ -24,14 +23,6 @@ LookupResult = Any
 Location = Path | str
 IS_TEST = 'dicelang.lark' in set(os.listdir(os.getcwd()))
 
-class Ownership:
-    def __init__(self, user: str, server: str):
-        self.user = user
-        self.server = server
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}({self.user!r}, {self.server!r})'
-
 
 class Subscriptable(Protocol):
     def __getitem__(self, key_or_slice: Hashable) -> Any:
@@ -47,6 +38,38 @@ Accessible = Subscriptable | Dottable
 AccessKey = slice | str | Hashable
 
 
+class IdentType(IntEnum):
+    SCOPED = 0
+    USER = 1
+    SERVER = 2
+    PUBLIC = 3
+
+    def keyword(self) -> str:
+        if self is self.SCOPED:
+            return ''
+        elif self is self.USER:
+            return "my"
+        elif self is self.SERVER:
+            return "our"
+        return "public"
+
+
+class Ownership:
+    def __init__(self, user: str, server: str):
+        self.user = user
+        self.server = server
+
+    def get(self, itype: IdentType) -> str:
+        if itype is IdentType.USER:
+            return self.user
+        if itype in (IdentType.SCOPED, IdentType.SERVER):
+            return self.server
+        return "clotho"
+
+    def __repr__(self):
+        return f'{self.__class__.__name__}({self.user!r}, {self.server!r})'
+
+
 class CallStack:
     def __init__(self, datastore=None, frames=None):
         self.frame: int = 0
@@ -56,7 +79,7 @@ class CallStack:
         self.closure = []
         self.ownership = None
 
-    def set_ownership(self, ownership: Ownership):
+    def set_ownership(self, ownership: Ownership, frames: dict | None = None):
         self.ownership = ownership
         self.frames: dict = frames or {}
         self.anonymous: list = []
@@ -67,6 +90,7 @@ class CallStack:
         self.frames.clear()
         self.anonymous.clear()
         self.closure.clear()
+        self.ownership = None
 
     def function_push(self, arguments: dict, closed: dict) -> int:
         self.frame_push()
@@ -200,22 +224,6 @@ class AccessorType(Enum):
     SLICE = 2
 
 
-class IdentType(IntEnum):
-    SCOPED = 0
-    USER = 1
-    SERVER = 2
-    PUBLIC = 3
-
-    def keyword(self) -> str:
-        if self is self.SCOPED:
-            return ''
-        elif self is self.USER:
-            return "my"
-        elif self is self.SERVER:
-            return "our"
-        return "public"
-
-
 class Module:
     exposed = plugins.exposed
 
@@ -319,23 +327,24 @@ class Lookup:
         self.call_stack = call_stack
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}({self.itype!r}, {self.call_stack!r}, {self.owner!r}, {self.name!r}, {self.accessors!r})'
+        clsname = self.__class__.__name__
+        return f'{clsname}({self.itype!r}, {self.call_stack!r}, {self.owner!r}, {self.name!r}, {self.accessors!r})'
 
     @classmethod
-    def scoped(cls, call_stack: CallStack, owner: str, name: str, *accessors: Accessor) -> Self:
-        return cls(IdentType.SCOPED, call_stack, owner, name, *accessors)
+    def scoped(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
+        return cls(itype := IdentType.SCOPED, call_stack, ownership.get(itype), name, *accessors)
 
     @classmethod
-    def user(cls, call_stack: CallStack, owner: str, name: str, *accessors: Accessor) -> Self:
-        return cls(IdentType.USER, call_stack, owner, name, *accessors)
+    def user(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
+        return cls(itype := IdentType.USER, call_stack, ownership.get(itype), name, *accessors)
 
     @classmethod
-    def server(cls, call_stack: CallStack, owner: str, name: str, *accessors: Accessor) -> Self:
-        return cls(IdentType.SERVER, call_stack, owner, name, *accessors)
+    def server(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
+        return cls(itype := IdentType.SERVER, call_stack, ownership.get(itype), name, *accessors)
 
     @classmethod
-    def public(cls, call_stack: CallStack, _owner: str, name: str, *accessors: Accessor) -> Self:
-        return cls(IdentType.PUBLIC, call_stack, "clotho", name, *accessors)
+    def public(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
+        return cls(itype := IdentType.PUBLIC, call_stack, ownership.get(itype), name, *accessors)
 
     def get(self) -> Any:
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
@@ -464,7 +473,7 @@ class PersistentStore(BasicStore):
 
 
 class SelfPruningStore(PersistentStore):
-    def __init__(self, db_location: Location, cycle_time: int =3 * 60 * 60, cycle_decay: int = 5):
+    def __init__(self, db_location: Location, cycle_time: int = 3 * 60 * 60, cycle_decay: int = 5):
         super().__init__(db_location)
         self.cycle_decay = cycle_decay
         self.usage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}}

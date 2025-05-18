@@ -7,8 +7,8 @@ from random import shuffle
 
 import more_itertools
 
-from typing import TypeVar, Iterable, Any
-from numbers import Real, Number
+from typing import TypeVar, Iterable, Any, SupportsFloat, SupportsIndex
+from numbers import Real
 T = TypeVar('T')
 
 
@@ -52,12 +52,12 @@ def shuffled(iterable: Iterable[T]) -> list[T]:
     return new
 
 
-def stats(iterable: dict[Any, Real] | Iterable[Real]):
+def stats(iterable: dict | Iterable[Real]):
     items = iterable.values() if isinstance(iterable, dict) else iterable
-    out = {'average': statistics.mean(items), 'minimum': min(items),
+    out = {'mu': statistics.mean(items), 'minimum': min(items),
            'maximum': max(items), 'median': statistics.median(items),
            'size': len(items), 'sum': sum(items)}
-    out['stddev'] = statistics.pstdev(items, out['average'])
+    out['sigma'] = statistics.stdev(items, out['average'])
     out['q1'] = statistics.median(x for x in items if x < out['median'])
     out['q3'] = statistics.median(x for x in items if x > out['median'])
     return out
@@ -79,7 +79,7 @@ def typename(x: Any) -> str:
     return x.__class__.__name__
 
 
-def magnitude(x: Number) -> Real:
+def magnitude(x: SupportsFloat | SupportsIndex) -> Real:
     if isinstance(x, Complex):
         return abs(x)
     return math.ceil(math.log10(x))

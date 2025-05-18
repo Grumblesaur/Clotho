@@ -31,7 +31,7 @@ def get_attr_or_item(obj: Any, name: str) -> Any:
     return out
 
 
-def split(vector: Sequence[T], on: T) -> tuple[Sequence[T], Sequence[T]]:
+def split(vector: Sequence[Any], on: Any) -> tuple[Sequence[Any], Sequence[Any]]:
     mid = vector.index(on)
     left, right = vector[:mid], vector[mid+1:]
     return left, right
@@ -67,5 +67,5 @@ def vector_sum(v: Iterable[Number]) -> Number:
     return reduce(add, v) if v else 0
 
 
-def sign(x: Number) -> int:
+def sign(x: int) -> int:
     return 1 if x >= 0 else -1
