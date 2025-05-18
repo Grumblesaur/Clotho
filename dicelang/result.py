@@ -1,23 +1,22 @@
-from typing import Any
 NotSpecified = object
 
 
 class Result:
-    def __init__(self, *, value: Any = None, console: str | None = None, error: Any = None):
+    def __init__(self, *, value=None, console: str = None, error=None):
         self.value = value
         self.console = console
         self.error = error
 
-    def __bool__(self) -> bool:
+    def __bool__(self):
         return self.value is not None
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f'{self.__class__.__name__}(value={self.value!r}, console={self.console!r}, error={self.error!r})'
 
 
-def success(value: Any, console: str) -> Result:
+def success(value, console: str):
     return Result(value=value, console=console)
 
 
-def failure(error: Any, console: str) -> Result:
+def failure(error, console: str):
     return Result(error=error, console=console)

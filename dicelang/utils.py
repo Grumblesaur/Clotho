@@ -1,12 +1,9 @@
 from collections.abc import Iterable
 from functools import reduce
-from numbers import Number
 from operator import add
-from typing import Any, Sequence, TypeVar
+
 from dicelang.exceptions import InvalidSubscript
 from dicelang.special import Spread
-
-T = TypeVar('T')
 
 
 class Parameter:
@@ -21,7 +18,7 @@ class Parameter:
         return f'{self.__class__.__name__}({self.name!r}, {self.starred!r})'
 
 
-def get_attr_or_item(obj: Any, name: str) -> Any:
+def get_attr_or_item(obj, name):
     if hasattr(obj, name):
         return getattr(obj, name)
     try:
@@ -32,30 +29,30 @@ def get_attr_or_item(obj: Any, name: str) -> Any:
     return out
 
 
-def split(vector: Sequence[T], on: T) -> tuple[Sequence[T], Sequence[T]]:
+def split(vector, on):
     mid = vector.index(on)
     left, right = vector[:mid], vector[mid+1:]
     return left, right
 
 
-def isordered(x: Any) -> bool:
+def isordered(x):
     return isinstance(x, (tuple, list))
 
 
-def isvector(x: Any) -> bool:
+def isvector(x):
     return not isinstance(x, (str, dict)) and isinstance(x, Iterable)
 
 
-def iscontainer(x: Any) -> bool:
+def iscontainer(x):
     return not isinstance(x, str) and isinstance(x, Iterable)
 
 
-def some(x: Any) -> int:
+def some(x):
     return 1 if x is not None else 0
 
 
-def spread(evaluated: Iterable[T], into=None) -> list[T] | Any:
-    new: list[T] = []
+def spread(evaluated, into=None):
+    new = []
     for x in evaluated:
         if isinstance(x, Spread):
             new.extend(x.items)
@@ -64,9 +61,9 @@ def spread(evaluated: Iterable[T], into=None) -> list[T] | Any:
     return new if into is None else into(new)
 
 
-def vector_sum(v: Iterable[Number]) -> Number:
+def vector_sum(v):
     return reduce(add, v) if v else 0
 
 
-def sign(x: Number) -> int:
+def sign(x):
     return 1 if x >= 0 else -1

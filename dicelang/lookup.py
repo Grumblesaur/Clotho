@@ -4,8 +4,6 @@ import sqlite3
 import threading
 import time
 import os
-from pathlib import Path
-from typing import Any, Protocol, Hashable, Iterable, Self
 from collections import Counter
 from enum import Enum, IntEnum
 
@@ -16,80 +14,63 @@ from dicelang.utils import get_attr_or_item, some
 
 NotLocal = object()
 NotBuiltin = object()
-Scope = dict[str, Any]
-Frame = list[Scope]
-LookupResult = Any
-Location = Path | str
+
 IS_TEST = 'dicelang.lark' in set(os.listdir(os.getcwd()))
-
-
-class Subscriptable(Protocol):
-    def __getitem__(self, key_or_slice: Hashable) -> Any:
-        pass
-
-
-class Dottable(Protocol):
-    def __getattr__(self, name: str) -> Any:
-        pass
-
-
-Accessible = Subscriptable | Dottable
-AccessKey = slice | str | Hashable
 
 
 class CallStack:
     def __init__(self, datastore=None, frames=None):
-        self.frame: int = 0
+        self.frame = 0
         self.datastore = datastore or SelfPruningStore(f'{"../" if IS_TEST else ""}persistence.db')
-        self.frames: dict = frames or {}
-        self.anonymous: list = []
-        self.closure: list = []
+        self.frames = frames or {}
+        self.anonymous = []
+        self.closure = []
 
-    def reset(self) -> None:
+    def reset(self):
         self.frame = 0
         self.frames.clear()
         self.anonymous.clear()
         self.closure.clear()
 
-    def function_push(self, arguments: dict, closed: dict) -> int:
+    def function_push(self, arguments: dict, closed: dict):
         self.frame_push()
         self.scope_push(arguments)
         self.closure_push(closed)
         return self.frame
 
-    def function_pop(self) -> int:
+    def function_pop(self):
         out = self.frame
         self.closure_pop()
         self.frame_pop()
         return out
 
-    def closure_push(self, frozen) -> None:
+    def closure_push(self, frozen):
         self.closure.append(frozen)
 
-    def closure_pop(self) -> None:
+    def closure_pop(self):
         self.closure.pop()
 
-    def closure_clear(self) -> None:
+    def closure_clear(self):
         self.closure.clear()
 
     @property
-    def frame_top(self) -> Frame | object:
+    def frame_top(self):
         try:
             return self.frames[self.frame]
         except KeyError:
             return NotLocal
 
-    def frame_push(self) -> int:
+    def frame_push(self):
         self.frame += 1
         self.frames[self.frame] = []
         return self.frame
 
-    def frame_pop(self) -> Frame:
+    def frame_pop(self):
         out = self.frames.pop(self.frame)
         self.frame -= 1
         return out
 
-    def freeze(self) -> Frame:
+    def freeze(self):
         if (frame := self.frame_top) is NotLocal:
             try:
                 return [copy.deepcopy(self.scope_top)]
@@ -97,7 +78,7 @@ class CallStack:
                 return [{}]
         return copy.deepcopy(frame)
 
-    def scope_push(self, scope: Scope | None = None) -> int:
+    def scope_push(self, scope=None):
         new = scope or {}
         try:
             self.frames[self.frame].append(new)
@@ -105,7 +86,7 @@ class CallStack:
             self.anonymous.append(new)
         return self.frame
 
-    def scope_pop(self) -> int:
+    def scope_pop(self):
         try:
             self.frames[self.frame].pop()
         except IndexError as e:
@@ -118,7 +99,7 @@ class CallStack:
         return self.frame
 
     @property
-    def scope_top(self) -> Scope:
+    def scope_top(self):
         try:
             return self.frames[self.frame][-1]
         except IndexError as e:
@@ -129,7 +110,7 @@ class CallStack:
         except KeyError:
             return self.anonymous[-1]
 
-    def get(self, key: str) -> LookupResult:
+    def get(self, key):
         if (frame := self.frame_top) is NotLocal:
             if self.anonymous:
                 for scope in reversed(self.anonymous):
@@ -146,7 +127,7 @@ class CallStack:
                     return scope[key]
         return NotLocal
 
-    def put(self, key: str, value: Any) -> Any:
+    def put(self, key, value):
         if (frame := self.frame_top) is NotLocal and self.anonymous:
             for scope in self.anonymous:
                 if key in scope:
@@ -161,7 +142,7 @@ class CallStack:
         self.scope_top[key] = value
         return value
 
-    def drop(self, key: str) -> LookupResult:
+    def drop(self, key):
         if (frame := self.frame_top) is NotLocal and self.anonymous:
             for scope in reversed(self.anonymous):
                 if key in scope:
@@ -189,7 +170,7 @@ class IdentType(IntEnum):
     SERVER = 2
     PUBLIC = 3
 
-    def keyword(self) -> str:
+    def keyword(self):
         if self is self.SCOPED:
             return ''
         elif self is self.USER:
@@ -210,11 +191,11 @@ class Module:
 
 
 class Accessor:
-    def __init__(self, atype: AccessorType, value: AccessKey):
+    def __init__(self, atype, value):
         self.atype = atype
         self.value = value
 
-    def get(self, from_object: Accessible) -> Any:
+    def get(self, from_object):
         match self:
             case self.__class__(AccessorType.ATTR, x):
                 return get_attr_or_item(from_object, x)
@@ -224,27 +205,27 @@ class Accessor:
                 return from_object[x]
 
     @classmethod
-    def attr(cls, value: str) -> Self:
+    def attr(cls, value):
         return cls(AccessorType.ATTR, value)
 
     @classmethod
-    def slice(cls, value: slice) -> Self:
+    def slice(cls, value):
         return cls(AccessorType.SLICE, value)
 
     @classmethod
-    def key(cls, value: Hashable) -> Self:
+    def key(cls, value):
         return cls(AccessorType.KEY, value)
 
     @property
-    def args(self) -> tuple[AccessorType, AccessKey]:
+    def args(self):
         return self.atype, self.value
 
     __match_args__ = ('atype', 'value')
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f'{type(self).__name__}({self.atype!r}, {self.value!r})'
 
-    def __str__(self) -> str:
+    def __str__(self):
         match self.atype:
             case AccessorType.KEY:
                 return f'[{self.value!r}]'
@@ -252,7 +233,7 @@ class Accessor:
                 return f'.{self.value!s}]'
             case AccessorType.SLICE:
                 x, y, z = self.value.start, self.value.stop, self.value.step
-                match int(''.join(str(some(i)) for i in (x, y, z)), base=2):
+                match int(''.join(str(some(i)) for i in (x, y, z))):
                     case 7:
                         return f'[{x!r}:{y!r}:{z!r}]'
                     case 6:
@@ -273,87 +254,84 @@ class Accessor:
 
 
 class Builtin:
-    def __init__(self, obj: Any, name: str, accessors: Iterable[Accessor]):
+    def __init__(self, obj, name, accessors):
         self.obj = obj
         self.name = name
         self.accessors = accessors
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         name, accessors = self.accessors
         access = ''.join(repr(a) for a in accessors)
         return f'{name!s}{access}'
 
-    def serialization(self) -> str:
+    def serialization(self):
         return f'{type(self).__name__}({repr(self)!r})'
 
     @property
-    def get(self) -> Any:
+    def get(self):
         if not self.accessors:
             return self.obj
         return eval(repr(self))
 
 
 class Lookup:
-    def __init__(self, itype: IdentType, call_stack: CallStack, owner: str, name: str, *accessors: Accessor):
+    def __init__(self, itype, call_stack, owner, name, *accessors):
         self.itype = itype
         self.owner = owner
         self.name = name
         self.accessors = accessors
         self.call_stack = call_stack
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return f'{self.__class__.__name__}({self.itype, self.call_stack, self.owner, self.name, self.accessors})'
 
     @classmethod
-    def scoped(cls, call_stack: CallStack, owner: str, name: str, *accessors: Accessor) -> Self:
+    def scoped(cls, call_stack, owner, name, *accessors):
         return cls(IdentType.SCOPED, call_stack, owner, name, *accessors)
 
     @classmethod
-    def user(cls, call_stack: CallStack, owner: str, name: str, *accessors: Accessor) -> Self:
+    def user(cls, call_stack, owner, name, *accessors):
         return cls(IdentType.USER, call_stack, owner, name, *accessors)
 
     @classmethod
-    def server(cls, call_stack: CallStack, owner: str, name: str, *accessors: Accessor) -> Self:
+    def server(cls, call_stack, owner, name, *accessors):
         return cls(IdentType.SERVER, call_stack, owner, name, *accessors)
 
     @classmethod
-    def public(cls, call_stack: CallStack, _owner: str, name: str, *accessors: Accessor) -> Self:
+    def public(cls, call_stack, _owner, name, *accessors):
         return cls(IdentType.PUBLIC, call_stack, "clotho", name, *accessors)
 
-    def get(self) -> Any:
+    def get(self):
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             target = maybe_builtin.get
         elif (maybe_scoped := self.call_stack.get(self.name)) is not NotLocal:
             target = maybe_scoped
         else:
-            itype = self.itype if self.itype is not IdentType.SCOPED else IdentType.SERVER
-            target = self.call_stack.datastore.get(itype, self.owner, self.name, *self.accessors)
+            target = self.call_stack.datastore.get(self.itype, self.owner, self.name, *self.accessors)
         for acc in self.accessors:
             target = acc.get(target)
         return target
 
-    def put(self, value: Any) -> Any:
+    def put(self, value):
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             raise BuiltinError.from_instance(maybe_builtin, "assign to")
-        elif self.itype == IdentType.SCOPED and self.call_stack.frame > 0:
+        elif self.itype == IdentType.SCOPED:
             return self.call_stack.put(self.name, value)
-        itype = self.itype if self.itype is not IdentType.SCOPED else IdentType.SERVER
-        return self.call_stack.datastore.put(itype, self.owner, value, self.name, *self.accessors)
+        return self.call_stack.datastore.put(self.itype, self.owner, value, self.name, *self.accessors)
 
-    def drop(self) -> Any:
+    def drop(self):
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             raise BuiltinError.from_instance(maybe_builtin, "delete")
-        elif self.itype == IdentType.SCOPED and IdentType.SCOPED > 0:
+        elif self.itype == IdentType.SCOPED:
             return self.call_stack.drop(self.name)
-        itype = self.itype if self.itype is not IdentType.SCOPED else IdentType.SERVER
-        return self.call_stack.datastore.drop(itype, self.owner, self.name, *self.accessors)
+        return self.call_stack.datastore.drop(self.itype, self.owner, self.name, *self.accessors)
 
 
 class BasicStore:
     def __init__(self):
         self.storage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}}
 
-    def get(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
+    def get(self, itype: IdentType, owner: str, name: str, *accessors):
         store = self.storage[itype or IdentType.SERVER]
         failed = False
         if owner not in store:
@@ -362,13 +340,13 @@ class BasicStore:
         elif name not in store[owner]:
             failed = True
         if failed:
-            raise FetchNonexistent(f"No variable named '{itype.keyword()} {name}'.")
+            raise FetchNonexistent(f'"{itype.keyword()} {name}"')
         value = store[owner][name]
         for accessor in accessors:
             value = accessor.get(value)
         return value
 
-    def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
+    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
         store = self.storage[itype or IdentType.SERVER]
         if owner not in store:
             store[owner] = {name: value}
@@ -378,7 +356,7 @@ class BasicStore:
             exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
         return value
 
-    def drop(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
+    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
         store = self.storage[itype or IdentType.SERVER]
         if owner not in store or name not in store[owner]:
             raise DeleteNonexistent(f'"{itype.keyword()} {name}"')
@@ -390,7 +368,7 @@ class BasicStore:
 
 
 class PersistentStore(BasicStore):
-    def __init__(self, db_location: Location):
+    def __init__(self, db_location):
         super().__init__()
         self.conn = sqlite3.connect(db_location)
         self.cur = self.conn.cursor()
@@ -403,11 +381,11 @@ class PersistentStore(BasicStore):
         );""")
         self.conn.commit()
 
-    def __del__(self) -> None:
+    def __del__(self):
         self.conn.commit()
         self.conn.close()
 
-    def get(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
+    def get(self, itype: IdentType, owner: str, name: str, *accessors):
         try:
             value = super().get(itype, owner, name, *accessors)
         except FetchNonexistent:
@@ -419,7 +397,7 @@ class PersistentStore(BasicStore):
             value = pickle.loads(pickled[0])
         return value
 
-    def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
+    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
         super().put(itype, owner, value, name, *accessors)
         obj = self.storage[itype or IdentType.SERVER][owner][name]
         self.cur.execute('''INSERT INTO variables VALUES(?, ?, ?, ?)
@@ -428,7 +406,7 @@ class PersistentStore(BasicStore):
         self.conn.commit()
         return value
 
-    def drop(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
+    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
         try:  # Obtain a copy of the item we intend to delete, or raise an error on deleting a missing object.
             out = self.get(itype, owner, name, *accessors)
             super().drop(itype, owner, name)
@@ -447,22 +425,22 @@ class PersistentStore(BasicStore):
 
 
 class SelfPruningStore(PersistentStore):
-    def __init__(self, db_location: Location, cycle_time: int =3 * 60 * 60, cycle_decay: int = 5):
+    def __init__(self, db_location, cycle_time=3 * 60 * 60, cycle_decay=5):
         super().__init__(db_location)
         self.cycle_decay = cycle_decay
         self.usage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}}
 
-        def pruning_task(datastore) -> None:
+        def pruning_task(datastore):
             while True:
                 time.sleep(cycle_time)
                 pruned = datastore.prune()
-                print(f'pruned {pruned} objects from caches')
+                print(f'pruned {pruned} objects from cache')
 
         self.pruner = threading.Thread(target=pruning_task, args=(self,), daemon=True)
         self.pruner.start()
-        print(f'Self-pruning thread initiated. Culling cycle: {cycle_time / 3600:.2f} hours.')
+        print('Self-pruning thread initiated. Culling cycle:', cycle_time / 3600, 'hours.')
 
-    def get(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
+    def get(self, itype: IdentType, owner: str, name: str, *accessors):
         out = super().get(itype, owner, name, *accessors)
         usage = self.usage[itype or IdentType.SERVER]
         if owner not in usage:
@@ -471,7 +449,7 @@ class SelfPruningStore(PersistentStore):
             usage[owner][name] += 1
         return out
 
-    def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
+    def put(self, itype: IdentType, owner: str, value, name: str, *accessors):
         out = super().put(itype, owner, value, name, *accessors)
         usage = self.usage[itype or IdentType.SERVER]
         if owner not in usage:
@@ -480,7 +458,7 @@ class SelfPruningStore(PersistentStore):
             usage[owner][name] += 1
         return out
 
-    def drop(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
+    def drop(self, itype: IdentType, owner: str, name: str, *accessors):
         out = super().drop(itype, owner, name, *accessors)
         usage = self.usage[itype or IdentType.SERVER]
         if owner not in usage or name not in usage[owner]:
@@ -491,7 +469,7 @@ class SelfPruningStore(PersistentStore):
             usage[owner][name] += 1
         return out
 
-    def prune(self) -> int:
+    def prune(self):
         marked = []
         for itype in self.usage:
             for owner in self.usage[itype]:
@@ -506,7 +484,7 @@ class SelfPruningStore(PersistentStore):
             print(f'prune {item} from cache')
         return pruned
 
-    def _remove(self, itype: IdentType, owner: str, name: str) -> int:
+    def _remove(self, itype: IdentType, owner: str, name: str):
         del self.storage[itype][owner][name]
         del self.usage[itype][owner][name]
         return 1

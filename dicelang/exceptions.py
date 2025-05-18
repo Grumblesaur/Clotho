@@ -1,4 +1,3 @@
-from typing import Any, Self
 from dicelang import special
 
 
@@ -18,13 +17,13 @@ class DicelangSignal(DicelangException):
     """Branch of the exception hierarchy for flow control. These
     exceptions can optionally capture a value, which will be used
     in certain contexts."""
-    def __init__(self, value: Any = Empty):
+    def __init__(self, value=Empty):
         self.value = value
 
-    def __bool__(self) -> bool:
+    def __bool__(self):
         return self.value is not Empty
 
-    def unwrap(self) -> Any:
+    def unwrap(self):
         return self.value if self else special.Undefined
 
 
@@ -120,7 +119,7 @@ class BuiltinError(DicelangRuntimeError):
     Function = type(special.do_nothing())
 
     @classmethod
-    def from_instance(cls, instance: Any, action_name: str) -> Self:
+    def from_instance(cls, instance, action_name):
         match type(instance):
             case cls.Module:
                 err = "module"
