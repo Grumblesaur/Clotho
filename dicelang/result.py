@@ -1,12 +1,13 @@
 from typing import Any
-NotSpecified = object
 
 
 class Result:
-    def __init__(self, *, value: Any = None, console: str | None = None, error: Any = None):
+    def __init__(self, *, value: Any = None, console: str | None = None, error: Any = None,
+                 is_helptext: bool = False):
         self.value = value
         self.console = console
         self.error = error
+        self.helptext = is_helptext
 
     def __bool__(self) -> bool:
         return self.value is not None
@@ -21,3 +22,7 @@ def success(value: Any, console: str) -> Result:
 
 def failure(error: Any, console: str) -> Result:
     return Result(error=error, console=console)
+
+
+def helptext(value: Any):
+    return Result(value=value, console=None, is_helptext=True)

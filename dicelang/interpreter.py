@@ -16,9 +16,9 @@ from dicelang import dicecore
 from dicelang import ops
 from dicelang import utils
 from dicelang import result
-from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal,
-                                 Impossible, InvalidSubscript, Return, SpreadError, Terminate, UnpackError,
-                                 ExcessiveRuntime)
+from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, Help,
+                                 IllegalSignal, Impossible, InvalidSubscript, Return, SpreadError, Terminate,
+                                 UnpackError, ExcessiveRuntime)
 from dicelang.lookup import Accessor, CallStack, IdentType, Lookup, Ownership
 from dicelang.special import Spread, Undefined
 from dicelang.user_function import UserFunction
@@ -53,6 +53,8 @@ class DicelangInterpreter(Interpreter):
             self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
         except Terminate as term:
             r = result.success(value=term.unwrap(), console=PrintQueue.flush())
+        except Help as e:
+            r = result.helptext(value=e)
         except DicelangSignal as e:
             error = IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
             r = result.failure(error=error, console=PrintQueue.flush())
