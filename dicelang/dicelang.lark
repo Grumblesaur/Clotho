@@ -150,10 +150,14 @@ special: "&" dice -> sum_or_join
 
 dice: dice /d/ primary -> die_binary
     | dice /r/ primary -> roll_binary
-    | dice /r/ primary /h/ primary -> roll_ternary_high
-    | dice /r/ primary /l/ primary -> roll_ternary_high
-    | dice /d/ primary /h/ primary -> die_ternary_high
-    | dice /d/ primary /l/ primary -> die_ternary_low
+    | dice /r/ primary /kh/ primary -> roll_ternary_keep_high
+    | dice /r/ primary /xh/ primary -> roll_ternary_drop_high
+    | dice /r/ primary /kl/ primary -> roll_ternary_keep_low
+    | dice /r/ primary /xl/ primary -> roll_ternary_drop_low
+    | dice /d/ primary /kh/ primary -> die_ternary_keep_high
+    | dice /d/ primary /xh/ primary -> die_ternary_drop_high
+    | dice /d/ primary /kl/ primary -> die_ternary_keep_low
+    | dice /d/ primary /xl/ primary -> die_ternary_drop_low
     | primary
 
 primary: atom

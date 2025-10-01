@@ -36,6 +36,7 @@ class DicelangInterpreter(Interpreter):
         self.limited = self.command_limit is not None
 
     def execute_test(self, tree):
+        self.ownership = Ownership(user="clotho", server="test")
         try:
             return self.visit(tree)
         finally:
@@ -121,6 +122,8 @@ class DicelangInterpreter(Interpreter):
 
     def for_loop(self, tree):
         _, ident, _, iterable, _, body = tree.children
+        action = None
+        x = None
         match name := self.visit(ident):
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
@@ -168,25 +171,41 @@ class DicelangInterpreter(Interpreter):
         dice, _, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides)
 
-    def die_ternary_high(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_highest(dice, sides, keep)
+    def die_ternary_keep_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_highest(dice, sides, n)
 
-    def die_ternary_low(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_lowest(dice, sides, keep)
+    def die_ternary_keep_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_lowest(dice, sides, n)
+
+    def die_ternary_drop_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_highest(dice, sides, n)
+
+    def die_ternary_drop_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_lowest(dice, sides, n)
 
     def roll_binary(self, tree):
         dice, _, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides, as_sum=False)
 
-    def roll_ternary_high(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_highest(dice, sides, keep, as_sum=False)
+    def roll_ternary_keep_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_highest(dice, sides, n, as_sum=False)
 
-    def roll_ternary_low(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_lowest(dice, sides, keep, as_sum=False)
+    def roll_ternary_keep_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_lowest(dice, sides, n, as_sum=False)
+
+    def roll_ternary_drop_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_highest(dice, sides, n, as_sum=False)
+
+    def roll_ternary_drop_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_lowest(dice, sides, n, as_sum=False)
 
     def exponent(self, tree):
         mantissa, superscript = self.visit_children(tree)
@@ -576,6 +595,8 @@ class DicelangInterpreter(Interpreter):
 
     def access(self, tree):
         name, *accessors = self.visit_children(tree)
+        action = None
+        x = None
         match name:
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
