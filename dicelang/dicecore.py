@@ -1,41 +1,45 @@
-from enum import Enum, IntEnum
+from enum import IntEnum
 import random
 from dicelang.exceptions import ImpossibleDice
 RollResult = int | list[int]
 
 
 class Mode(IntEnum):
+    """Dice-rolling modes:
+      - KEEP – Dice will be selected based on which ones should be kept.
+      - DROP – Dice will be selected based on which ones should be dropped."""
     DROP = 0
     KEEP = 1
 
 class Target(IntEnum):
+    """Dice-rolling targets:
+      - LOWEST – Dice will be dropped or kept according to the Mode when they are the lowest.
+      - HIGHEST – Dice will be dropped or kept according to the Mode when they are the highest.
+      - ALL – All dice will be kept regardless of value or mode."""
     LOWEST = -1
     ALL = 0
     HIGHEST = 1
 
 
 def kernel(dice: int, sides: int, n: int = 1, mode: Mode = Mode.KEEP, target: Target = Target.ALL, as_sum: bool = True) -> RollResult:
-    if n > dice and mode is Mode.KEEP or n >= dice and mode is Mode.DROP:
+    if mode is Mode.KEEP and n > dice or mode is Mode.DROP and n >= dice:
         raise ImpossibleDice(f'tried to {"keep" if mode else "drop"} {n} {"die" if n == 1 else "dice"},'
                              + f' but only {dice} {"die was" if n == 1 else "dice were"} rolled.')
     if n < 1:
         raise ImpossibleDice(f'tried to {"keep" if mode else "drop"} non-positive number of dice ({n})')
 
     rolls = sorted(random.randint(1, sides) for _ in range(dice))
-    results = None
     match (mode, target):
-        case _, Target.ALL:
-            results = rolls
         case Mode.KEEP, Target.LOWEST:
-            results = rolls[:n]
+            rolls = rolls[:n]
         case Mode.DROP, Target.LOWEST:
-            results = rolls[n:]
+            rolls = rolls[n:]
         case Mode.KEEP, Target.HIGHEST:
-            results = rolls[-n:]
+            rolls = rolls[-n:]
         case Mode.DROP, Target.HIGHEST:
-            results = rolls[:-n]
+            rolls = rolls[:-n]
 
-    return sum(results) if as_sum else results
+    return sum(rolls) if as_sum else rolls
 
 
 def keep_all(dice: int, sides: int, as_sum: bool = True) -> RollResult:
