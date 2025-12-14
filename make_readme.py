@@ -8,6 +8,7 @@ for component in components:
         readme.append(f.read())
 
 with open('README.md', 'w') as f:
+    f.write("<!-- THIS FILE HAS BEEN GENERATED FROM OTHER SOURCES. IT SHOULD NOT BE EDITED DIRECTLY. -->\n")
     f.write('\n----\n'.join(readme))
 
 

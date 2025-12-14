@@ -1,3 +1,4 @@
+<!-- THIS FILE HAS BEEN GENERATED FROM OTHER SOURCES. IT SHOULD NOT BE EDITED DIRECTLY. -->
 # Clotho
 Clotho is a tool for playing tabletop RPG games over Discord. It features a simple
 expression-based programming language for automating common RPG actions, and for the most
