@@ -19,8 +19,7 @@ feature, you can open an issue on Clotho's [GitHub repository](https://github.co
 ## Quickstart
 
 This is a quick guide for some Dicelang operations when using Clotho. If you want Clotho to
-see your message, make sure to start it with `+roll`. If this would trigger another bot as
-well, you can use `+roll` instead.
+see your message, make sure to start it with `+roll`.
 
 The person who manages your server's Clotho instance may have changed the `+` prefix to some
 other character (e.g. `$` for `$roll` instead), but all documentation will assume `+` for
@@ -28,14 +27,14 @@ consistency. The correct prefix will always be indicated in Clotho's Discord sta
 
 ### Roll dice (Examples)
 ```
-  +roll 1d20    ? a twenty-sided die
-  +roll 4d6     ? four six-sided dice
+  +roll 1d20    # a twenty-sided die
+  +roll 4d6     # four six-sided dice
   
-  +roll 7d8kh4   ? seven eight-sided dice, keep the highest four
-  +roll 10d3kl5  ? ten three-sided dice, keep the lowest five
+  +roll 7d8kh4   # seven eight-sided dice, keep the highest four
+  +roll 10d3kl5  # ten three-sided dice, keep the lowest five
   
-  +roll 3d6xh1   ? three six-sided dice, scratch the highest one
-  +roll 8d8xl4   ? eight eight-sided dice, scratch the lowest four
+  +roll 3d6xh1   # three six-sided dice, scratch the highest one
+  +roll 8d8xl4   # eight eight-sided dice, scratch the lowest four
 ```
 Any number of dice or sides 1 or greater will work. The number you keep (`kh`, `kl`)
 must be greater than or equal to 1 and less than or equal to the number of dice rolled.
@@ -48,28 +47,28 @@ For the rest of the examples, we'll exclude the `+roll` command handle.
 
 ### Multiply and divide (Examples)
 ```
-  5 / 10       ? gives 0.5
-  8.8 / -2     ? gives -4.4
-  -3.0 * -3.0  ? gives 9.0
-  5 // 2       ? gives 2  (`//` always gives an integer result)
+  5 / 10       # gives 0.5
+  8.8 / -2     # gives -4.4
+  -3.0 * -3.0  # gives 9.0
+  5 // 2       # gives 2  (`//` always gives an integer result)
 ```
 
 ### Add and subtract (Examples)
 ```
-  6 + 4   ? gives 10
-  5 - 6   ? gives -1
+  6 + 4   # gives 10
+  5 - 6   # gives -1
 ```
 
-You'll notice that these examples have trailing remarks beginning with a `?`. These are
-comments. Everything from the `?` to the end of the line is ignored by the Dicelang
+You'll notice that these examples have trailing remarks beginning with a `#`. These are
+comments. Everything from the `#` to the end of the line is ignored by the Dicelang
 interpreter. This allows you to annotate your intent for other people reading Clotho's
 replies.
 
 ```
-+roll [1d20 + 7,  ? This is my attack roll.
-       2d6 + 3,   ? This is the damage it does if the game master deems it a success.
-      ]           ? Also, yes, trailing commas are OK in lists, and you can break commands
-                  ? up across multiple lines.
++roll [1d20 + 7,  # This is my attack roll.
+       2d6 + 3,   # This is the damage it does if the game master deems it a success.
+      ]           # Also, yes, trailing commas are OK in lists, and you can break commands
+                  # up across multiple lines.
 ```
 
 There is no multiline comment syntax.
@@ -79,28 +78,24 @@ There is no multiline comment syntax.
 
 Sometimes you'll want to perform the same action multiple times. Atropos Dicelang had a
 repeat operator (`^`), but Clotho Dicelang reserves this for a different operation now.
-Instead, you can use the `for` loop syntax. Say you're making a D&D character, and you need
+Instead, you can use the `repeat` syntax. Say you're making a D&D 5e character, and you need
 to generate your ability scores. This process has to be repeated six times for six ability
 scores. You could, of course, just enter `+roll 4d6kh3` or `+roll 4d6xl1` six different times,
 but grouping them together states your intent more clearly to your fellow players, and reduces
 clutter in your chat. Here's how you can do it instead:
 
 ```
-  for ability_score in [1 through 6] do 4d6xl1
+  4d6lx1 repeat 6  # Roll 4d6 scratch 1 six different times.
 ```
 
-The variable `ability_score` does not actually have to be named here; we could leave it
-blank  by calling it `_` instead. `[1 through 6]` creates the list `[1, 2, 3, 4, 5, 6]`.
-This is helpful, since we need ability scores. So, for each item in this list, we'll
-`do` `4d6xl1`, which is the expression that generates an ability score. The output of the
-entire `for` expression is a list containing the ability scores, which a player can assign
-as desired. For more information on this kind of loop, invoke `help("for")`.
+More complex types of repetition can be performed using `for` loops, which you can
+read about by invoking `+roll help("for")`.
 
 This is actually unnecessary. Since D&D is a common choice of tabletop game, Clotho has a
 module named `dnd` containing a few functions for tasks like this. Instead, you could invoke:
 
 ```
-  dnd.stats   ? There's some trickery here under the hood so that no `()` are required.
+  dnd.stats   # There's some trickery here under the hood so that no `()` are required.
 ```
 
 Or, if you want them auto-assigned to the ability scores by name,
@@ -126,8 +121,8 @@ or modify a roll.
 
 ### Exponents (Examples)
 ```
-  3 ** 2      ? gives 9
-  10 ** (-1)  ? gives 0.1
+  3 ** 2      # gives 9
+  10 ** (-1)  # gives 0.1
 ```
 
 Just like with regular math, Atropos' dice engine adheres to an order of  operations (also

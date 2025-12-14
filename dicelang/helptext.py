@@ -1,8 +1,9 @@
 from typing import Callable
 from exceptions import Help
+import sys
 NO_OBJECT = object()
 
-OPERATORS = {}
+OPERATORS = {"for": "<Placeholder `for` loop info.>"}
 
 
 class HelpUndefined(NotImplementedError, Help):
@@ -12,7 +13,7 @@ class HelpUndefined(NotImplementedError, Help):
 def helptext(obj: object = NO_OBJECT) -> str:
     if obj is NO_OBJECT:
         raise HelpUndefined("[insert generic help overview here]")
-    if isinstance(obj, Callable):
+    if isinstance(obj, Callable) or isinstance(obj, type(sys)):
         raise Help(obj.__doc__)
     if obj in OPERATORS:
         raise Help(OPERATORS[obj])

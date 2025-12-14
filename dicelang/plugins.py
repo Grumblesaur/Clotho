@@ -8,6 +8,7 @@ from random import random as rand
 from dicelang.native import (
     PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof, magnitude, product
 )
+from helptext import helptext
 from dicelang.bonus import dnd
 
 exposed = {
@@ -45,6 +46,7 @@ exposed = {
     'println0': pq.println0,
     'Fraction': Fraction,
     'dnd': dnd.DND,
+    'help': helptext,
 }
 
 exposed['builtins'] = sorted(exposed.keys())
