@@ -32,7 +32,7 @@ if __name__ == '__main__':
         """dnd.modifiers(my s)""",
         """dnd.modifiers(my q)""",
         """delete my s, my q""",
-        """help("for")""",
+        # """help("for")""",  # this is working correctly but currently doesn't do anything useful
     ]
     for t in tests:
         output = execute('james', 'test', t)
