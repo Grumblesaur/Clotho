@@ -159,7 +159,7 @@ class DicelangInterpreter(Interpreter):
         return self.visit(else_action)
 
     def repetition(self, tree):
-        repeatable, repeats = tree.children
+        repeatable, _, repeats = tree.children
         return [self.visit(repeatable) for _ in range(self.visit(repeats))]
 
     def die_binary(self, tree):
@@ -335,7 +335,7 @@ class DicelangInterpreter(Interpreter):
         return self.visit(a if random.randint(0, 1) else b)
 
     def random_selection_replacing_unary(self, tree):
-        population = self.visit_children(tree)
+        population, = self.visit_children(tree)
         if hasattr(population, '__len__'):
             return random.choice(population)
         return population

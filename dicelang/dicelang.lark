@@ -230,7 +230,7 @@ LIT_RAW_SINGLE: /\bR\b/ "'" _STRING_ESC_INNER "'"
 LIT_RAW_DOUBLE: /\bR\b/ ESCAPED_STRING
 LIT_STRING_DOUBLE: ESCAPED_STRING
 
-%ignore "?" /.*/
+%ignore "#" /.*/
 %import common.WS
 %import common.NEWLINE
 %ignore WS

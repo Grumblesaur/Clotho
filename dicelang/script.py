@@ -20,7 +20,18 @@ def execute(owner: str, server: str, dicelang_script: str) -> Result:
 
 if __name__ == '__main__':
     tests = [
-        """my x + our y"""
+        """my x = 10""",
+        """our y = 20""",
+        """my x + our y""",
+        """delete my x, our y""",
+        """14 @ (1, 5, 9, 15, 19)""",
+        """3 @! [1, 5, 9, 15, 19]""",
+        """3d6 repeat 6 # ability scores""",
+        """'heads' ! 'tails'""",
+        """my s = dnd.stats_named; my q = dnd.stats_named""",
+        """dnd.modifiers(my s)""",
+        """dnd.modifiers(my q)""",
+        """delete my s, my q""",
     ]
     for t in tests:
         output = execute('james', 'test', t)

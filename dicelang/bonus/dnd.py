@@ -30,13 +30,10 @@ class DND:
     def dis(cls):
         return dicecore.keep_lowest(2, 20, 1)
 
-    @classmethod
-    def mod(cls, n):
+    @staticmethod
+    def mod(n):
         return (n - 10) // 2
 
-    @classmethod
-    def modifiers(cls, named_stats):
-        mods = {}
-        for ability, score in named_stats.items():
-            mods[cls.ability_scores[ability]] = cls.mod(score)
-        return mods
+    @staticmethod
+    def modifiers(named_stats: dict[str, int]) -> dict[str, int]:
+        return {ability[:3].upper(): (score - 10) // 2 for ability, score in named_stats.items()}
