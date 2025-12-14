@@ -44,6 +44,10 @@ class Terminate(DicelangSignal):
     pass
 
 
+class Help(DicelangSignal):
+    pass
+
+
 class ProgrammingError(DicelangException):
     """Indicates a bug or unhandled case."""
     pass

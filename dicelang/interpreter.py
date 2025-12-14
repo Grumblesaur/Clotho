@@ -16,9 +16,9 @@ from dicelang import dicecore
 from dicelang import ops
 from dicelang import utils
 from dicelang import result
-from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, IllegalSignal,
-                                 Impossible, InvalidSubscript, Return, SpreadError, Terminate, UnpackError,
-                                 ExcessiveRuntime)
+from dicelang.exceptions import (AssignmentError, BadLiteral, Break, Continue, DicelangSignal, Empty, Help,
+                                 IllegalSignal, Impossible, InvalidSubscript, Return, SpreadError, Terminate,
+                                 UnpackError, ExcessiveRuntime)
 from dicelang.lookup import Accessor, CallStack, IdentType, Lookup, Ownership
 from dicelang.special import Spread, Undefined
 from dicelang.user_function import UserFunction
@@ -36,6 +36,7 @@ class DicelangInterpreter(Interpreter):
         self.limited = self.command_limit is not None
 
     def execute_test(self, tree):
+        self.ownership = Ownership(user="clotho", server="test")
         try:
             return self.visit(tree)
         finally:
@@ -53,6 +54,8 @@ class DicelangInterpreter(Interpreter):
             self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
         except Terminate as term:
             r = result.success(value=term.unwrap(), console=PrintQueue.flush())
+        except Help as e:
+            r = result.helptext(value=e)
         except DicelangSignal as e:
             error = IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
             r = result.failure(error=error, console=PrintQueue.flush())
@@ -119,6 +122,8 @@ class DicelangInterpreter(Interpreter):
 
     def for_loop(self, tree):
         _, ident, _, iterable, _, body = tree.children
+        action = None
+        x = None
         match name := self.visit(ident):
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
@@ -166,25 +171,41 @@ class DicelangInterpreter(Interpreter):
         dice, _, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides)
 
-    def die_ternary_high(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_highest(dice, sides, keep)
+    def die_ternary_keep_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_highest(dice, sides, n)
 
-    def die_ternary_low(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_lowest(dice, sides, keep)
+    def die_ternary_keep_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_lowest(dice, sides, n)
+
+    def die_ternary_drop_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_highest(dice, sides, n)
+
+    def die_ternary_drop_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_lowest(dice, sides, n)
 
     def roll_binary(self, tree):
         dice, _, sides = self.visit_children(tree)
         return dicecore.keep_all(dice, sides, as_sum=False)
 
-    def roll_ternary_high(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_highest(dice, sides, keep, as_sum=False)
+    def roll_ternary_keep_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_highest(dice, sides, n, as_sum=False)
 
-    def roll_ternary_low(self, tree):
-        dice, _, sides, _, keep = self.visit_children(tree)
-        return dicecore.keep_lowest(dice, sides, keep, as_sum=False)
+    def roll_ternary_keep_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.keep_lowest(dice, sides, n, as_sum=False)
+
+    def roll_ternary_drop_high(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_highest(dice, sides, n, as_sum=False)
+
+    def roll_ternary_drop_low(self, tree):
+        dice, _, sides, _, n = self.visit_children(tree)
+        return dicecore.drop_lowest(dice, sides, n, as_sum=False)
 
     def exponent(self, tree):
         mantissa, superscript = self.visit_children(tree)
@@ -574,6 +595,8 @@ class DicelangInterpreter(Interpreter):
 
     def access(self, tree):
         name, *accessors = self.visit_children(tree)
+        action = None
+        x = None
         match name:
             case (IdentType.SCOPED, x):
                 action = Lookup.scoped
