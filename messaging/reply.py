@@ -63,7 +63,7 @@ def roll_content(m: str, t: discord.User, r: result.Result) -> str:
     return content
 
 
-def roll_attachment(m: str, t: discord.User, r:result.Result) -> Path:
+def roll_attachment(m: str, t: discord.User, r: result.Result) -> Path:
     timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
     name = f'message-{timestamp}.md'
     with open(name, 'w') as f:

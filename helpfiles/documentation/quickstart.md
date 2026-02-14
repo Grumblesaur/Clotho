@@ -18,12 +18,10 @@ consistency. The correct prefix will always be indicated in Clotho's Discord sta
   +roll 3d6xh1   # three six-sided dice, scratch the highest one
   +roll 8d8xl4   # eight eight-sided dice, scratch the lowest four
 ```
-Any number of dice or sides 1 or greater will work. The number you keep (`kh`, `kl`)
-must be greater than or equal to 1 and less than or equal to the number of dice rolled.
-If you scratch (drop) dice instead (`xh`, `xl`), the number you scratch must be greater
-or equal to 1 and strictly less than the number of dice rolled. The results of the dice
-can be given as a list instead of a sum by switching the `d` to `r` (e.g. `1r20`). They
-will be ordered least to greatest, not in the order they were generated.
+Any number of dice *k* or sides 1 or greater will work. For a number *n* of dice you keep
+(`kh`, `kl`) or scratch (`xh`, `xl`), 1 <= n < k. The results of the dice can be given as
+a list instead of a sum by switching the `d` to `r` (e.g. `1r20`). They will be ordered least
+to greatest, not in the order they were generated.
 
 For the rest of the examples, we'll exclude the `+roll` command handle.
 
@@ -42,9 +40,8 @@ For the rest of the examples, we'll exclude the `+roll` command handle.
 ```
 
 You'll notice that these examples have trailing remarks beginning with a `#`. These are
-comments. Everything from the `#` to the end of the line is ignored by the Dicelang
-interpreter. This allows you to annotate your intent for other people reading Clotho's
-replies.
+comments. Everything from the `#` to the end of the line is ignored. This allows you to
+annotate your intent for other people reading Clotho's replies.
 
 ```
 +roll [1d20 + 7,  # This is my attack roll.
@@ -58,13 +55,12 @@ There is no multiline comment syntax.
 
 ### Repetition
 
-Sometimes you'll want to perform the same action multiple times. Atropos Dicelang had a
-repeat operator (`^`), but Clotho Dicelang reserves this for a different operation now.
-Instead, you can use the `repeat` syntax. Say you're making a D&D 5e character, and you need
-to generate your ability scores. This process has to be repeated six times for six ability
-scores. You could, of course, just enter `+roll 4d6kh3` or `+roll 4d6xl1` six different times,
-but grouping them together states your intent more clearly to your fellow players, and reduces
-clutter in your chat. Here's how you can do it instead:
+Sometimes you'll want to perform one action many times. Atropos Dicelang had a repeat
+operator (`^`), but Clotho Dicelang reserves this for something else. Instead, you can use
+the `repeat` syntax. Say you're making a D&D 5e character, and you need to generate your
+ability scores. This process has to be repeated six times for six ability scores. You could,
+of course, just enter `+roll 4d6kh3` or `+roll 4d6xl1` six different times, but grouping them
+together communicates your intent to your fellow players. Here's how you can do it instead:
 
 ```
   4d6lx1 repeat 6  # Roll 4d6 scratch 1 six different times.

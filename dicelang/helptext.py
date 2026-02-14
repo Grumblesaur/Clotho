@@ -1,5 +1,5 @@
 from typing import Callable
-from exceptions import Help
+from dicelang.exceptions import Help
 import sys
 NO_OBJECT = object()
 

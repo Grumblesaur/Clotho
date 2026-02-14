@@ -14,14 +14,14 @@ class retrieve:
     topics = {name.split('.')[0]: name for name in os.listdir(base)}
 
     @functools.cache
-    def __new__(cls, topic) -> str:
+    def __new__(cls, topic) -> tuple[str, Path]:
         try:
             name = cls.topics[topic.lower()]
         except KeyError as e:
             raise InvalidHelpTopic(topic)
-        with open(cls.base / name, 'r') as f:
+        with open(p := (cls.base / name), 'r') as f:
             text = f.read()
-        return text
+        return text, p
 
 
 if __name__ == '__main__':

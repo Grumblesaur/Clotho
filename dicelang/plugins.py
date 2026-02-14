@@ -8,7 +8,7 @@ from random import random as rand
 from dicelang.native import (
     PrintQueue as pq, flatten, lzip, shuffled, stats, typename, typeof, magnitude, product
 )
-from helptext import helptext
+from dicelang.helptext import helptext
 from dicelang.bonus import dnd
 
 exposed = {
