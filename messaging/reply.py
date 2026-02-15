@@ -1,5 +1,6 @@
 import os
 import discord
+import stoat
 from pathlib import Path
 from datetime import datetime
 from dicelang import result
@@ -63,7 +64,25 @@ def roll_content(m: str, t: discord.User, r: result.Result) -> str:
     return content
 
 
-def roll_attachment(m: str, t: discord.User, r: result.Result) -> Path:
+def s_roll_content(m: str, t: stoat.User | stoat.Member, r: result.Result) -> str:
+    name = t.nick or t.name if isinstance(t, stoat.Member) else t.display_name
+    contents = [f'**{name}**', f'```\n{m}\n```']
+    if r.helptext:
+        contents.append(f'**Help**\n{r.value}')
+    else:
+        if r.console:
+            contents.append(f'**Message**\n```diff\n{r.console}\n```')
+        if r.value is not None:
+            contents.append(f'**Result**\n```diff\n{r.value}\n```')
+        if r.error is not None:
+            contents.append(f'**Error**\n```diff\n{r.error}\n```')
+    content = '\n'.join(contents)
+    if (n := len(content)) > CONTENT_LIMIT:
+        raise ContentTooLarge(n)
+    return content
+
+
+def roll_attachment(m: str, t: discord.User | stoat.User, r: result.Result) -> Path:
     timestamp = datetime.now().strftime("%Y-%m-%d-%H%M%S")
     name = f'message-{timestamp}.md'
     with open(name, 'w') as f:
