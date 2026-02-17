@@ -339,7 +339,7 @@ class DicelangInterpreter(Interpreter):
 
     def bit_not(self, tree):
         operand = self.visit(tree.children[0])
-        if isinstance(operand, Complex):
+        if operand.__class__ is complex:
             return operand.conjugate()
         return ~operand
 
