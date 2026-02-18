@@ -606,6 +606,8 @@ class DicelangInterpreter(Interpreter):
                 action = Lookup.server
             case (IdentType.PUBLIC, x):
                 action = Lookup.public
+            case (IdentType.USER_SERVER, x):
+                action = Lookup.user_server
             case _:
                 raise Impossible(f"can't retrieve: {name!r} {accessors!r}")
         return action(self.call_stack, self.ownership, x, *accessors)
@@ -651,6 +653,10 @@ class DicelangInterpreter(Interpreter):
     @staticmethod
     def public_identifier(tree):
         return IdentType.PUBLIC, str(tree.children[1])
+
+    @staticmethod
+    def user_server_identifier(tree):
+        return IdentType.USER_SERVER, str(tree.children[1])
 
     augments = {'+=': operator.iadd, '-=': operator.isub, '$=': ops.icat,
                 '*=': operator.imul, '/=': operator.itruediv, '//=': operator.ifloordiv,

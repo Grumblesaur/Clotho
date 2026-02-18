@@ -43,6 +43,7 @@ class IdentType(IntEnum):
     USER = 1
     SERVER = 2
     PUBLIC = 3
+    USER_SERVER = 4
 
     def keyword(self) -> str:
         if self is self.SCOPED:
@@ -51,6 +52,8 @@ class IdentType(IntEnum):
             return "my"
         elif self is self.SERVER:
             return "our"
+        elif self is self.USER_SERVER:
+            return "this"
         return "public"
 
 
@@ -64,6 +67,8 @@ class Ownership:
             return self.user
         if itype in (IdentType.SCOPED, IdentType.SERVER):
             return self.server
+        if itype is IdentType.USER_SERVER:
+            return f'{self.server}:{self.user}'
         return "clotho"
 
     def __repr__(self):
@@ -343,6 +348,10 @@ class Lookup:
         return cls(itype := IdentType.SERVER, call_stack, ownership.get(itype), name, *accessors)
 
     @classmethod
+    def user_server(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
+        return cls(itype := IdentType.USER_SERVER, call_stack, ownership.get(itype), name, *accessors)
+
+    @classmethod
     def public(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
         return cls(itype := IdentType.PUBLIC, call_stack, ownership.get(itype), name, *accessors)
 
@@ -377,7 +386,7 @@ class Lookup:
 
 class BasicStore:
     def __init__(self):
-        self.storage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}}
+        self.storage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}, IdentType.USER_SERVER: {}}
 
     def get(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
         store = self.storage[itype or IdentType.SERVER]
@@ -476,7 +485,7 @@ class SelfPruningStore(PersistentStore):
     def __init__(self, db_location: Location, cycle_time: int = 3 * 60 * 60, cycle_decay: int = 5):
         super().__init__(db_location)
         self.cycle_decay = cycle_decay
-        self.usage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}}
+        self.usage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}, IdentType.USER_SERVER: {}}
 
         def pruning_task(datastore) -> None:
             while True:
