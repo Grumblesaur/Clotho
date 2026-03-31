@@ -5,6 +5,18 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "aiohappyeyeballs==2.6.1",
+    "aiohttp==3.13.4",
+    "aiosignal==1.4.0",
+    "attrs==26.1.0",
+    "audioop-lts==0.2.2",
+    "discord-py==2.7.1",
+    "frozenlist==1.8.0",
+    "idna==3.11",
     "lark-parser==0.12.0",
     "more-itertools==10.8.0",
+    "multidict==6.7.1",
+    "propcache==0.4.1",
+    "stoat-py==1.2.1",
+    "yarl==1.23.0",
 ]
