@@ -374,7 +374,7 @@ class DicelangInterpreter(Interpreter):
             return random.sample(population, count)
         return [population] * count
 
-    comparisons = {
+    comparison_ops = {
         '==': operator.eq,
         '!=': operator.ne,
         '>=': operator.ge,
@@ -383,28 +383,25 @@ class DicelangInterpreter(Interpreter):
         '<=': operator.le,
     }
 
-    def compare_math(self, tree):
-        children = self.visit_children(tree)
-        for i in range(0, len(children)-2, 2):
-            left, op, right = children[i:i+3]
-            if not self.comparisons[op](left, right):
-                return False
-        return True
-
     identity_ops = {'is': lambda a, b: a is b, 'is not': lambda a, b: a is not b}
 
     @staticmethod
     def identity_op(tree):
         return "is" if len(tree.children) == 1 else "is not"
 
-    def identity(self, tree):
+    def _pairwise_ops(self, tree, operators):
         children = self.visit_children(tree)
         for i in range(0, len(children)-2, 2):
             left, op, right = children[i:i+3]
-            if not self.identity_ops[op](left, right):
+            if not operators[op](left, right):
                 return False
         return True
 
+    def compare_math(self, tree):
+        return self._pairwise_ops(tree, self.comparison_ops)
+
+    def identity(self, tree):
+        return self._pairwise_ops(tree, self.identity_ops)
 
     def member_of(self, tree):
         element, _, collection = self.visit_children(tree)

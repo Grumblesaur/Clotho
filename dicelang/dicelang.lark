@@ -163,7 +163,7 @@ access: identifier subscript_chain?
 retrieval: access
 lvalue: access
 
-arguments: spread ("," spread)* ","?
+arguments: expr ("," expr)* ","?
 
 atom: number
     | boolean
