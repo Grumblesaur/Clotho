@@ -20,7 +20,7 @@ from dicelang.exceptions import (BadLiteral, Break, Continue, DicelangSignal, Em
                                  IllegalSignal, Impossible, InvalidSubscript, Return, Terminate,
                                  ExcessiveRuntime)
 from dicelang.lookup import Accessor, CallStack, IdentType, Lookup, Ownership
-from dicelang.special import Spread, Undefined
+from dicelang.special import Undefined
 from dicelang.user_function import UserFunction
 from dicelang.native import PrintQueue
 
@@ -513,7 +513,7 @@ class DicelangInterpreter(Interpreter):
         return []
 
     def list_populated(self, tree):
-        return utils.spread(self.visit_children(tree))
+        return list(self.visit_children(tree))
 
     def list_range(self, tree):
         start, _, stop = self.visit_children(tree)
@@ -538,21 +538,18 @@ class DicelangInterpreter(Interpreter):
         return list(range(start, stop + step if up else stop - step, step))
 
     def tuple_single(self, tree):
-        return tuple(x.items) if isinstance(x := self.visit(tree.children[0]), Spread) else (x,)
+        return self.visit(tree.children[0]),
 
     def tuple_multi(self, tree):
-        return utils.spread(self.visit_children(tree), into=tuple)
+        return tuple(self.visit_children(tree))
 
     def set_populated(self, tree):
-        return utils.spread(self.visit_children(tree), into=set)
+        return set(self.visit_children(tree))
 
-    @staticmethod
-    def parameter(tree):
-        return utils.Parameter(str(tree.children[0]))
-
-    @staticmethod
-    def parameter_starred(tree):
-        return utils.Parameter(str(tree.children[-1]), starred=True)
+    def param(self, tree):
+        if len(tree.children) == 1:
+            return utils.Parameter(str(tree.children[0]))
+        return utils.Parameter(str(tree.children[0]), self.visit(tree.children[1]))
 
     def function(self, tree):
         closure = self.call_stack.freeze()

@@ -1,24 +1,36 @@
+import sentinel
 from collections.abc import Iterable
 from functools import reduce
 from numbers import Number
 from operator import add
 from typing import Any, Sequence, TypeVar
 from dicelang.exceptions import InvalidSubscript
-from dicelang.special import Spread
 
 T = TypeVar('T')
+Unfilled = sentinel.create()
 
+def is_sorted(v: Sequence[T]) -> bool:
+    prev, *rest = v
+    for item in rest:
+        if prev > item:
+            return False
+        prev = item
+    return True
 
 class Parameter:
-    def __init__(self, name, starred=False):
+    def __init__(self, name, default=Unfilled):
         self.name = name
-        self.starred = starred
+        self.default = default
+
+    def is_default(self):
+        return self.default is not Unfilled
 
     def __str__(self):
         return self.name
 
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.name!r}, {self.starred!r})'
+        d = f', {self.default!r}' if self.default is not Unfilled else ''
+        return f'{self.__class__.__name__}({self.name!r}{d})'
 
 
 def get_attr_or_item(obj: Any, name: str) -> Any:
@@ -51,16 +63,6 @@ def iscontainer(x: Any) -> bool:
 
 def some(x: Any) -> int:
     return 1 if x is not None else 0
-
-
-def spread(evaluated: Iterable[T], into=None) -> list[T] | Any:
-    new: list[T] = []
-    for x in evaluated:
-        if isinstance(x, Spread):
-            new.extend(x.items)
-        else:
-            new.append(x)
-    return new if into is None else into(new)
 
 
 def vector_sum(v: Iterable[Number]) -> Number:

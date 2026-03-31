@@ -1,5 +1,6 @@
+import utils
 from copy import deepcopy
-
+from collections import Counter
 from dicelang.exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
 from dicelang.parser import parser
 from dicelang.reconstructor import DicelangReconstructor
@@ -16,10 +17,10 @@ class UserFunction:
     def __init__(self, code_string, closed_over=None):
         ast = parser.parse(code_string, start='function')
         *self.params, self.code = ast.children
+        self.required = len(self.params) - sum(p.is_default() for p in self.params)
         self.normalize()
         self.this = Undefined
         self.closed_over = closed_over or [{}]
-        self.variadic = bool(self.params) and self.params[-1].starred
         self.source = f'({", ".join(self.params)}) -> {code_string}'
 
     def __repr__(self):
@@ -33,8 +34,8 @@ class UserFunction:
         self = object.__new__(cls)
         self.code = tree.children[-1]
         self.params = [interpreter.visit(c) for c in tree.children[:-1]]
-        self.variadic = bool(self.params) and self.params[-1].starred
-        self.normalize()
+        self.normalize() and self.validate()
+        self.required = len(self.params) - sum(p.is_default() for p in self.params)
         self.closed_over = closed_over or [{}]
         self.this = Undefined
         self.source = cls.reconstruct(tree)
@@ -44,21 +45,26 @@ class UserFunction:
         newtree = type(self.code)(deepcopy(self.code.data), deepcopy(self.code.children))
         return self.from_ast(newtree, self.params[:], deepcopy(self.closed_over))
 
+    def validate(self):
+        if not self.params:
+            return True
+        if not utils.is_sorted([p.is_default() for p in self.params]):
+            raise BadArguments('all keyword arguments must follow positional arguments')
+        return True
+
     def normalize(self):
         self.params = tuple(str(p) for p in self.params)
-        last = None
-        for p in sorted(self.params):
-            if p == last:
+        for p, c in Counter(self.params).items():
+            if c > 1:
                 raise DuplicateParameter(repr(p))
+        return True
 
     def marshal(self, *args):
-        if not self.variadic:
-            if (exp := len(self.params)) != (act := len(args)):
-                raise BadArguments(f'function call expected {exp} arguments, but got {act}')
-            return dict(zip((str(p) for p in self.params), args))
-        if (exp := len(self.params) - 1) > (act := len(args)):
-            raise BadArguments(f'function call requires at least {exp} arguments, but got {act}')
-        head, rest = args[:exp], args[exp:]
+        if self.required > (act := len(args)):
+            raise BadArguments(f'function call requires {self.required} arguments, but got {act}')
+        head, rest = args[:self.required], args[self.required:]
+
+        # TODO: change marshalling algorithm
         marshaled = dict(zip((str(p) for p in self.params[:-1]), head))
         marshaled[str(self.params[-1])] = tuple(rest)
         return marshaled

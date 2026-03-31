@@ -72,10 +72,9 @@ compound: conditional
         | block
         | inline_if
 
-function: "(" ((parameter ("," parameter)*)? ("," parameter_starred)? | parameter_starred) ","? ")" "->" body
 
-parameter: IDENT
-parameter_starred: /\*/ IDENT
+param: IDENT ("=" expr)?
+function: "(" (param ("," param)*)? ")" "->" body
 
 inline_if: flow KW_IF flow KW_ELSE inline_if -> if_ternary
          | flow

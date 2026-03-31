@@ -17,6 +17,7 @@ dependencies = [
     "more-itertools==10.8.0",
     "multidict==6.7.1",
     "propcache==0.4.1",
+    "sentinel>=1.0.0",
     "stoat-py==1.2.1",
     "yarl==1.23.0",
 ]

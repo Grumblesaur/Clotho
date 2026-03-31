@@ -1,8 +1,3 @@
-class Spread:
-    def __init__(self, items):
-        self.items = items
-
-
 def do_nothing():
     pass
 
