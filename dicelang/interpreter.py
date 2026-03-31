@@ -548,12 +548,6 @@ class DicelangInterpreter(Interpreter):
     def set_populated(self, tree):
         return utils.spread(self.visit_children(tree), into=set)
 
-    def spread_unpackable(self, tree):
-        items = self.visit(tree.children[0])
-        if not isinstance(items, Iterable):
-            raise SpreadError(f"Value after * must be iterable, not {type(items).__name__}")
-        return Spread(items)
-
     @staticmethod
     def parameter(tree):
         return utils.Parameter(str(tree.children[0]))
@@ -672,66 +666,6 @@ class DicelangInterpreter(Interpreter):
     def assignment_single(self, tree):
         lval, _, rval = self.visit_children(tree)
         return lval.put(rval)
-
-    def assignment_multi(self, tree):
-        lvals, rvals = utils.split(self.visit_children(tree), "=")
-        if (llen := len(lvals)) > (rlen := len(rvals)):
-            raise AssignmentError(f"more assignment targets {llen} than values {rlen}")
-        elif llen < rlen:
-            raise AssignmentError(f"fewer assignment targets {llen} than values {rlen}")
-        return [lval.put(rval) for lval, rval in zip(lvals, rvals)]
-
-    def assignment_unpack_left(self, tree):
-        operands = self.visit_children(tree)
-        lvals, rval = operands[1:-2], operands[-1]
-        if not utils.isordered(rval):
-            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
-        if (act := len(rval)) < (exp := len(lvals) - 1):
-            raise UnpackError(f'expected at least {exp} values to unpack, but got {act}')
-        starred, individual = lvals[0], lvals[1:]
-        start = len(rval) - 1
-        end = start - (ilen := len(individual))
-        backwards = [individual[-j].put(rval[i]) for i, j in zip(range(start, end, -1), range(1, ilen+1))]
-        packed = starred.put(rval[:end+1])
-        return tuple(itertools.chain([packed], reversed(backwards)))
-
-    def assignment_unpack_middle(self, tree):
-        operands = self.visit_children(tree)
-        lvals, rval = operands[0:-2], operands[-1]
-        if not utils.isordered(rval):
-            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
-        if (act := len(rval)) < (exp := len(lvals) - 1):
-            raise UnpackError(f'expected at least {exp} values to unpack, but got {act}')
-        head, rest = utils.split(lvals, "*")
-        starred, tail = rest[0], rest[1:]
-        hc, tc = len(head), len(tail)
-        hvals, svals, tvals = rval[:hc], rval[hc:-tc], rval[-tc:]
-        hout = [left.put(right) for left, right in zip(head, hvals)]
-        tout = [left.put(right) for left, right in zip(tail, tvals)]
-        sout = starred.put(svals)
-        return tuple(itertools.chain(hout, [sout], tout))
-
-    def assignment_unpack_right(self, tree):
-        operands = self.visit_children(tree)
-        lvals, rval = operands[0:-2], operands[-1]
-        if not utils.isordered(rval):
-            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
-        if (act := len(rval)) < (exp := len(lvals) - 1):
-            raise UnpackError(f'expected at least {exp} values to unpack, but got {act}')
-        individual, starred = utils.split(lvals, "*")
-        end = len(individual)
-        forwards = [individual[i].put(rval[i]) for i in range(end)]
-        packed = starred[0].put(rval[end:])
-        return tuple(itertools.chain(forwards, [packed]))
-
-    def assignment_unpack(self, tree):
-        operands = self.visit_children(tree)
-        lvals, rval = operands[0:-2], operands[-1]
-        if not utils.isordered(rval):
-            raise UnpackError(f"can't unpack from {rval.__class__.__name__}")
-        if (act := len(rval)) < (exp := len(lvals)):
-            raise UnpackError(f'expected {exp} values to unpack, but got {act}')
-        return tuple(left.put(right) for left, right in zip(lvals, rval))
 
     def __default__(self, tree):
         return self.visit(tree.children[0])

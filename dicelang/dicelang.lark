@@ -54,17 +54,10 @@ slice: expr -> index_or_key
      | ":" expr ":" expr -> stop_step_slice
      | ":" ":" expr -> step_slice
 
-
-
 expr: assignment
 
 deletion: KW_DELETE access ("," access)* ","?
 assignment: lvalue OP_ASSIGN rvalue -> assignment_single
-          | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue ("," rvalue)+ ","? -> assignment_multi
-          | lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack
-          | /\*/ lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack_left
-          | (lvalue ",")+ /\*/ lvalue ("," lvalue)+ ","? OP_ASSIGN rvalue -> assignment_unpack_middle
-          | (lvalue ",")+ /\*/ lvalue OP_ASSIGN rvalue -> assignment_unpack_right
           | deletion
           | augmented
 
@@ -189,20 +182,19 @@ LIT_INF: /\binf\b/
 string: LIT_STRING_DOUBLE | LIT_STRING_SINGLE | LIT_RAW_SINGLE | LIT_RAW_DOUBLE
 boolean: LIT_TRUE | LIT_FALSE
 undefined: LIT_UNDEFINED
-spread: "*" expr -> spread_unpackable
-      | expr -> spread_single
 
 list: "[" "]" -> list_empty
-    | "[" spread ("," spread)* ","? "]" -> list_populated
+    | "[" expr ("," expr)* ","? "]" -> list_populated
     | "[" expr KW_TO expr "]" -> list_range
     | "[" expr KW_TO expr KW_BY expr "]" -> list_range_stepped
     | "[" expr KW_THROUGH expr "]" -> list_closed
     | "[" expr KW_THROUGH expr KW_BY expr "]" -> list_closed_stepped
 
 tuple: "(" ")" -> tuple_empty
-     | "(" spread "," ")" -> tuple_single
-     | "(" spread ("," spread)+ ","? ")" -> tuple_multi
-set: "{" spread ("," spread)* "}" -> set_populated
+     | "(" expr "," ")" -> tuple_single
+     | "(" expr ("," expr)+ ","? ")" -> tuple_multi
+
+set: "{" expr ("," expr)* "}" -> set_populated
 
 dict: "{" "}" -> dict_empty
     | "{" kv_pair ("," kv_pair)* ","? "}" -> dict_populated

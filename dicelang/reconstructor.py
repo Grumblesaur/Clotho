@@ -107,42 +107,6 @@ class DicelangReconstructor(Interpreter):
     def assignment_single(self, tree):
         return ' '.join(self.visit_children(tree))
 
-    def assignment_unpack(self, tree):
-        segments = self.visit_children(tree)
-        left, right = utils.split(segments, '=')
-        lvals = ', '.join(left)
-        rval = right[0]
-        return f'{lvals} = {rval}'
-
-    def assignment_unpack_left(self, tree):
-        segments = self.visit_children(tree)
-        left, right = utils.split(segments, '=')
-        lvals = ', '.join(left)
-        rval = right[0]
-        return f'*{lvals} = {rval}'
-
-    def assignment_unpack_middle(self, tree):
-        segments = self.visit_children(tree)
-        left, right = utils.split(segments, '=')
-        head, tail = utils.split(left, "*")
-        middle, tail = tail[0], tail[1:]
-        leading = ', '.join(head)
-        middle = f'*{middle}'
-        trailing = ', '.join(tail)
-        rval = right[0]
-        lvals = ', '.join([leading, middle, trailing])
-        return f'{lvals} = {rval}'
-
-    def assignment_unpack_right(self, tree):
-        segments = self.visit_children(tree)
-        left, right = utils.split(segments, '=')
-        individual, starred = utils.split(left, '*')
-        leading = ', '.join(individual)
-        starred = f'*{starred[0]}'
-        lvals = f'{leading}, {starred}'
-        rval = right[0]
-        return f'{lvals} = {rval}'
-
     def augmented(self, tree):
         return ' '.join(self.visit_children(tree))
 
@@ -311,9 +275,6 @@ class DicelangReconstructor(Interpreter):
             args = args[0]
         return f'{callee}({args})'
 
-    def spread_unpackable(self, tree):
-        return f'*{self.visit(tree.children[0])}'
-
     @staticmethod
     def undefined(_):
         return 'Undefined'
@@ -359,7 +320,7 @@ class DicelangReconstructor(Interpreter):
 
     @staticmethod
     def tuple_empty(_):
-        return ()
+        return '()'
 
     def set_populated(self, tree):
         items = ', '.join(self.visit_children(tree))
@@ -367,7 +328,7 @@ class DicelangReconstructor(Interpreter):
 
     @staticmethod
     def dict_empty(_):
-        return {}
+        return '{}'
 
     def dict_populated(self, tree):
         return '{' + ', '.join(self.visit_children(tree)) + '}'
