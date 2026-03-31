@@ -1,8 +1,6 @@
 from lark.visitors import Interpreter
 from dicelang.exceptions import Impossible
 
-import dicelang.utils
-
 
 class DicelangReconstructor(Interpreter):
     def __init__(self, indent='    '):
