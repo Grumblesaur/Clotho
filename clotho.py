@@ -111,7 +111,7 @@ async def s_on_message(event: stoat.MessageCreateEvent):
 def main():
     parser = make_parser()
     args = parser.parse_args()
-    discord_token = configuration.data['auth']['token']
+    discord_token = configuration.data['discord']['token']
     stoat_token = configuration.data['stoat']['token']
     if args.service.casefold() == 'discord':
         discord_bot.run(discord_token)

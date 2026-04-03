@@ -1,4 +1,4 @@
-import utils
+import dicelang.utils
 from copy import deepcopy
 from collections import Counter
 from dicelang.exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return

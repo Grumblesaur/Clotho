@@ -3,7 +3,10 @@ import tomllib
 placeholder = """[bot]
 prefix = "+"
 
-[auth]
+[discord]
+token = "insert-token-here"
+
+[stoat]
 token = "insert-token-here"
 """
 
