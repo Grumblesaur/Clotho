@@ -8,6 +8,7 @@ class DicelangReconstructor(Interpreter):
         self.indent = indent
 
     def __default__(self, tree):
+        print(tree)
         return self.visit(tree.children[0])
 
     @staticmethod
@@ -114,12 +115,8 @@ class DicelangReconstructor(Interpreter):
         return f'({signature}) -> {body}'
 
     @staticmethod
-    def parameter(tree):
+    def param(tree):
         return tree.children[0].value
-
-    @staticmethod
-    def parameter_starred(tree):
-        return f'*{tree.children[-1].value}'
 
     def if_ternary(self, tree):
         return ' '.join(self.visit_children(tree))

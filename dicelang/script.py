@@ -33,6 +33,7 @@ if __name__ == '__main__':
         """dnd.modifiers(my q)""",
         """delete my s, my q""",
         """[1, 2, 3] * -3""",
+        """((a=10, b=10) -> a + b)(5)"""
         # """help("for")""",  # this is working correctly but currently doesn't do anything useful
     ]
     for t in tests:

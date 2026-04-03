@@ -46,6 +46,7 @@ class UserFunction:
         return self.from_ast(newtree, self.params[:], deepcopy(self.closed_over))
 
     def validate(self):
+        print(self.params)
         if not self.params:
             return True
         if not utils.is_sorted([p.is_default() for p in self.params]):
@@ -53,21 +54,30 @@ class UserFunction:
         return True
 
     def normalize(self):
-        self.params = tuple(str(p) for p in self.params)
-        for p, c in Counter(self.params).items():
+        for p, c in Counter(str(p) for p in self.params).items():
             if c > 1:
                 raise DuplicateParameter(repr(p))
         return True
 
-    def marshal(self, *args):
-        if self.required > (act := len(args)):
-            raise BadArguments(f'function call requires {self.required} arguments, but got {act}')
-        head, rest = args[:self.required], args[self.required:]
-
-        # TODO: change marshalling algorithm
-        marshaled = dict(zip((str(p) for p in self.params[:-1]), head))
-        marshaled[str(self.params[-1])] = tuple(rest)
-        return marshaled
+    def marshal(self, *positional, **keyword):
+        marshalled = {}
+        positionals = len(positional)
+        used = 0
+        for param in self.params:
+            if param.is_default():
+                if param in keyword:
+                    marshalled[param.name] = keyword[param.name]
+                elif used < positionals:
+                    marshalled[param.name] = positional[used]
+                    used += 1
+                else:
+                    marshalled[param.name] = param.default
+            else:
+                if used >= positionals:
+                    raise BadArguments(f'invalid number of positional arguments')
+                marshalled[param.name] = positional[used]
+                used += 1
+        return marshalled
 
     def __call__(self, interpreter, *args):
         arguments = {'this': self.this}
