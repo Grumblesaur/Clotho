@@ -39,7 +39,7 @@ async def on_ready():
 async def roll(ctx: Context, *, dicelang: str = parameter(description='An expression or script in Dicelang.')):
     owner = ctx.author
     async with ctx.typing():
-        result = execute(str(owner.id), str(ctx.guild.id), dicelang)
+        result = execute(str(owner.id), str(ctx.guild.id), str(ctx.channel.id), dicelang)
         try:
             await ctx.reply(embed=reply.roll_embed(dicelang, owner, result))
         except reply.EmbedTooLarge:
@@ -86,11 +86,12 @@ async def s_on_message(event: stoat.MessageCreateEvent):
 
     owner = message.author
     server = message.server
+    channel = message.channel
 
     if message.content.startswith(remove := f'{COMMAND_PREFIX}roll'):
         async with stoat_bot.user.typing():
             dicelang = message.content.removeprefix(remove).lstrip()
-            result = execute(str(owner.id), str(server), dicelang)
+            result = execute(str(owner.id), str(server), str(channel), dicelang)
             try:
                 await message.reply(reply.s_roll_content(dicelang, owner, result))
             except reply.ContentTooLarge:

@@ -42,9 +42,9 @@ class DicelangInterpreter(Interpreter):
         finally:
             self.call_stack.reset()
 
-    def execute(self, tree, as_owner: str = 'clotho', on_server: str = 'test'):
+    def execute(self, tree, as_owner: str = 'clotho', on_server: str = 'test', in_channel: str = "default"):
         try:
-            self.ownership = Ownership(user=as_owner, server=on_server)
+            self.ownership = Ownership(user=as_owner, server=on_server, channel=in_channel)
             self.call_stack.set_ownership(self.ownership)
             self.start_time = datetime.datetime.now()
             value = self.visit(tree)
@@ -52,6 +52,8 @@ class DicelangInterpreter(Interpreter):
             self.call_stack.datastore.put(itype=IdentType.USER, owner=self.ownership.user, value=value, name='_')
             self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.ownership.server, value=value, name='_')
             self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.USER_SERVER, owner=f'{self.ownership.server}:{self.ownership.user}', value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.CHANNEL, owner=self.ownership.channel, value=value, name='_')
         except Terminate as term:
             r = result.success(value=term.unwrap(), console=PrintQueue.flush())
         except Help as e:
@@ -133,6 +135,8 @@ class DicelangInterpreter(Interpreter):
                 action = Lookup.server
             case (IdentType.PUBLIC, x):
                 action = Lookup.public
+            case (IdentType.CHANNEL, x):
+                action = Lookup.channel
             case _:
                 raise Impossible(f"can't assign for loop variable {name}")
         loop_variable = action(self.call_stack, self.ownership, x)
@@ -597,6 +601,8 @@ class DicelangInterpreter(Interpreter):
                 action = Lookup.public
             case (IdentType.USER_SERVER, x):
                 action = Lookup.user_server
+            case (IdentType.CHANNEL, x):
+                action = Lookup.channel
             case _:
                 raise Impossible(f"can't retrieve: {name!r} {accessors!r}")
         return action(self.call_stack, self.ownership, x, *accessors)
@@ -646,6 +652,10 @@ class DicelangInterpreter(Interpreter):
     @staticmethod
     def user_server_identifier(tree):
         return IdentType.USER_SERVER, str(tree.children[1])
+
+    @staticmethod
+    def channel_identifier(tree):
+        return IdentType.CHANNEL, str(tree.children[1])
 
     augments = {'+=': operator.iadd, '-=': operator.isub, '$=': ops.icat,
                 '*=': operator.imul, '/=': operator.itruediv, '//=': operator.ifloordiv,

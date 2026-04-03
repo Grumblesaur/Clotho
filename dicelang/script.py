@@ -6,7 +6,7 @@ from dicelang.result import Result, failure
 interpreter = DicelangInterpreter()
 
 
-def execute(owner: str, server: str, dicelang_script: str) -> Result:
+def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Result:
     try:
         ast = parser.parse(dicelang_script)
     except lark.LarkError as e:
@@ -14,7 +14,7 @@ def execute(owner: str, server: str, dicelang_script: str) -> Result:
                                      " string quotes, mismatched parentheses or brackets, or used"
                                      " an operator incorrectly.")
     else:
-        r = interpreter.execute(ast, as_owner=owner, on_server=server)
+        r = interpreter.execute(ast, as_owner=owner, on_server=server, in_channel=channel)
     return r
 
 
@@ -33,9 +33,13 @@ if __name__ == '__main__':
         """dnd.modifiers(my q)""",
         """delete my s, my q""",
         """[1, 2, 3] * -3""",
-        """((a=10, b=10) -> a + b)(5)"""
+        """((a=10, b=10) -> a + b)(5)""",
+        """scene x = 1""",
+        """delete scene x""",
         # """help("for")""",  # this is working correctly but currently doesn't do anything useful
     ]
     for t in tests:
-        output = execute('james', 'test', t)
+        output = execute('james', 'test', 'general', t)
         print(output)
+        if output.error:
+            print(output.error)

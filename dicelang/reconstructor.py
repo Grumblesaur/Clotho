@@ -26,6 +26,10 @@ class DicelangReconstructor(Interpreter):
     def public_identifier(tree):
         return f'public {tree.children[-1].value}'
 
+    @staticmethod
+    def channel_identifier(tree):
+        return f'scene {tree.children[-1].value}'
+
     def priority(self, tree):
         return f'({self.visit(tree.children[0])})'
 

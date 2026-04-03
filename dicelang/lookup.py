@@ -44,6 +44,7 @@ class IdentType(IntEnum):
     SERVER = 2
     PUBLIC = 3
     USER_SERVER = 4
+    CHANNEL = 5
 
     def keyword(self) -> str:
         if self is self.SCOPED:
@@ -54,13 +55,16 @@ class IdentType(IntEnum):
             return "our"
         elif self is self.USER_SERVER:
             return "this"
+        elif self is self.CHANNEL:
+            return "local"
         return "public"
 
 
 class Ownership:
-    def __init__(self, user: str, server: str):
+    def __init__(self, user: str, server: str, channel: str = None):
         self.user = user
         self.server = server
+        self.channel = channel or user
 
     def get(self, itype: IdentType) -> str:
         if itype is IdentType.USER:
@@ -69,6 +73,8 @@ class Ownership:
             return self.server
         if itype is IdentType.USER_SERVER:
             return f'{self.server}:{self.user}'
+        if itype is IdentType.CHANNEL:
+            return f'ch{self.channel}'
         return "clotho"
 
     def __repr__(self):
@@ -355,6 +361,10 @@ class Lookup:
     def public(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
         return cls(itype := IdentType.PUBLIC, call_stack, ownership.get(itype), name, *accessors)
 
+    @classmethod
+    def channel(cls, call_stack: CallStack, ownership: Ownership, name: str, *accessors: Accessor) -> Self:
+        return cls(itype := IdentType.CHANNEL, call_stack, ownership.get(itype), name, *accessors)
+
     def get(self) -> Any:
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             target = maybe_builtin.get
@@ -386,7 +396,8 @@ class Lookup:
 
 class BasicStore:
     def __init__(self):
-        self.storage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}, IdentType.USER_SERVER: {}}
+        self.storage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {},
+                        IdentType.USER_SERVER: {}, IdentType.CHANNEL: {}}
 
     def get(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
         store = self.storage[itype or IdentType.SERVER]
@@ -485,7 +496,8 @@ class SelfPruningStore(PersistentStore):
     def __init__(self, db_location: Location, cycle_time: int = 3 * 60 * 60, cycle_decay: int = 5):
         super().__init__(db_location)
         self.cycle_decay = cycle_decay
-        self.usage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {}, IdentType.USER_SERVER: {}}
+        self.usage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {},
+                      IdentType.USER_SERVER: {}, IdentType.CHANNEL: {}}
 
         def pruning_task(datastore) -> None:
             while True:
