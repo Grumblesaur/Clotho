@@ -1,10 +1,10 @@
-import dicelang.utils
 from copy import deepcopy
 from collections import Counter
 from dicelang.exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
 from dicelang.parser import parser
 from dicelang.reconstructor import DicelangReconstructor
 from dicelang.special import Undefined
+from dicelang.utils import is_sorted
 
 
 class UserFunction:
@@ -46,10 +46,9 @@ class UserFunction:
         return self.from_ast(newtree, self.params[:], deepcopy(self.closed_over))
 
     def validate(self):
-        print(self.params)
         if not self.params:
             return True
-        if not utils.is_sorted([p.is_default() for p in self.params]):
+        if not is_sorted([p.is_default() for p in self.params]):
             raise BadArguments('all keyword arguments must follow positional arguments')
         return True
 

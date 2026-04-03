@@ -8,7 +8,6 @@ class DicelangReconstructor(Interpreter):
         self.indent = indent
 
     def __default__(self, tree):
-        print(tree)
         return self.visit(tree.children[0])
 
     @staticmethod
