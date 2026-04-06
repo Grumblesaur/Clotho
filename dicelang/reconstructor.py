@@ -117,8 +117,9 @@ class DicelangReconstructor(Interpreter):
         signature = ', '.join(parameters)
         return f'({signature}) -> {body}'
 
-    @staticmethod
-    def param(tree):
+    def param(self, tree):
+        if len(tree.children) > 1:
+            return f'{tree.children[0].value}={self.visit(tree.children[1])}'
         return tree.children[0].value
 
     def if_ternary(self, tree):
@@ -338,7 +339,7 @@ class DicelangReconstructor(Interpreter):
 
 if __name__ == '__main__':
     from parser import parser
-    input_ = '''f = (*a) -> begin d a[0] + d a[1] + sum(a[2:]) end'''
+    input_ = '''f = (a=1, b=-1) -> begin a + b end'''
     ast = parser.parse(input_)
     dr = DicelangReconstructor()
     output = dr.visit(ast)
