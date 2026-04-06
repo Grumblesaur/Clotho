@@ -39,7 +39,10 @@ async def on_ready():
 async def roll(ctx: Context, *, dicelang: str = parameter(description='An expression or script in Dicelang.')):
     owner = ctx.author
     async with ctx.typing():
-        result = execute(str(owner.id), str(ctx.guild.id), str(ctx.channel.id), dicelang)
+        owner_id = str(owner.id)
+        guild_id = str(ctx.guild.id) if ctx.guild is not None else str('dm'+owner_id)
+        channel_id = str(ctx.channel.id)
+        result = execute(owner_id, guild_id, channel_id, dicelang)
         try:
             await ctx.reply(embed=reply.roll_embed(dicelang, owner, result))
         except reply.EmbedTooLarge:
