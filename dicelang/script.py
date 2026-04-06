@@ -1,10 +1,9 @@
 import lark
 from dicelang.interpreter import DicelangInterpreter
-from dicelang.parser import parser
+from dicelang.parser import parser, DicelangSyntaxError
 from dicelang.result import Result, failure
 
 interpreter = DicelangInterpreter()
-
 
 def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Result:
     try:
@@ -13,6 +12,8 @@ def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Resu
         r = failure(error=e, console="Parsing error. You may have mistyped a keyword, forgot"
                                      " string quotes, mismatched parentheses or brackets, or used"
                                      " an operator incorrectly.")
+    except DicelangSyntaxError as e:
+        r = failure(error=e.context, console=e.label)
     else:
         r = interpreter.execute(ast, as_owner=owner, on_server=server, in_channel=channel)
     return r

@@ -6,7 +6,6 @@ class DicelangException(Exception):
     """Base class for the Dicelang exception hierarchy."""
     pass
 
-
 Empty = object()
 
 
