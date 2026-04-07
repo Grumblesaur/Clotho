@@ -14,6 +14,7 @@ from dicelang.exceptions import BuiltinError, MissingScope, DeleteNonexistent, F
     NoSuchVariable
 from dicelang.utils import get_attr_or_item, some
 from dicelang.special import Undefined
+from dicelang.user_function import UserFunction
 
 NotLocal = object()
 NotBuiltin = object()
@@ -416,12 +417,13 @@ class BasicStore:
 
     def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
         store = self.storage[itype or IdentType.SERVER]
-        if owner not in store:
-            store[owner] = {name: value}
-        elif name not in store[owner]:
-            store[owner][name] = value
-        else:
-            exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
+        with UserFunction.SerializationManager():
+            if owner not in store:
+                store[owner] = {name: value}
+            elif name not in store[owner]:
+                store[owner][name] = value
+            else:
+                exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
         return value
 
     def drop(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:

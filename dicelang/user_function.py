@@ -11,6 +11,15 @@ class UserFunction:
     """Construct a user-created function specified by Dicelang code."""
     reconstructor = DicelangReconstructor()
 
+    class SerializationManager:
+        def __enter__(self):
+            UserFunction.__repr__ = UserFunction.alt_repr
+            return self
+
+        def __exit__(self, exc_type, exc_value, exc_traceback):
+            UserFunction.__repr__ = UserFunction.standard_repr
+            return self
+
     @classmethod
     def reconstruct(cls, code):
         """Recreate the source code of a function from its abstract syntax
@@ -29,11 +38,19 @@ class UserFunction:
         self.closed_over = closed_over or [{}]
         self.source = f'({", ".join(self.params)}) -> {code_string}'
 
-    def __repr__(self):
+    def standard_repr(self):
         return self.source
 
-    def serialization(self):
-        return f'{self.__class__.__name__}({self.source, self.closed_over})'
+    __repr__ = standard_repr
+
+    def alt_repr(self):
+        return f'{self.__class__.__name__}({self.source!r}, {self.closed_over!r}'
+
+    def __enter__(self):
+        self.__repr__ = self.alt_repr
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.__repr__ = self.standard_repr
 
     @classmethod
     def from_ast(cls, interpreter, tree, closed_over=None):
