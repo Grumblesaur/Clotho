@@ -581,7 +581,8 @@ class DicelangInterpreter(Interpreter):
         return Accessor.key(bracketed)
 
     def subscript_dot(self, tree):
-        return Accessor.attr(self.visit(tree.children[0])[1])
+        visited = self.visit(tree.children[0])
+        return Accessor.attr(visited[-1])
 
     def subscript_chain(self, tree):
         return self.visit_children(tree)

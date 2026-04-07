@@ -44,7 +44,12 @@ if __name__ == '__main__':
         # """help("for")""",  # this is working correctly but currently doesn't do anything useful
     ]
 
-    for t in tests:
+    new_tests = [
+        """p = {'q': {'r': (x) -> x + x}}""",
+        """p.q.r(1)"""
+    ]
+
+    for t in new_tests:
         output = execute('james', 'test', 'general', t)
         print(output)
         if output.error:

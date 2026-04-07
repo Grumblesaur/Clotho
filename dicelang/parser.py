@@ -67,15 +67,21 @@ class MissingCloseBracket(MissingBrace):
     label = "Missing close bracket"
     examples = ['[1, ', '[1, 2']
 
+class InvalidIdentifier(DicelangSyntaxError):
+    label = "Invalid identifier (reserved word)"
+    examples = ["q.r", "p.d", "public begin", "my public", "x.delete"]
+    hint = "Try using key notation `p['r']` instead of attribute notation `p.r`."
+
 
 # NEVER use the 'lalr' parser option. Dicelang's grammar has loads of
 # shift/reduce conflicts which 'earley' can handle.
 class DicelangParser:
     Paths = [Path(x) for x in ('./dicelang.lark', './dicelang/dicelang.lark')]
     _syntax_errors = {MissingLeftOperand, MissingRightOperand, MissingComma, MissingOpenParen, MissingCloseParen,
-                      MissingOpenCurly, MissingCloseCurly, MissingOpenBracket, MissingCloseBracket,}
+                      MissingOpenCurly, MissingCloseCurly, MissingOpenBracket, MissingCloseBracket,
+                      InvalidIdentifier}
 
-    def __init__(self, path: Path = None):
+    def __init__(self):
         for path in self.Paths:
             try:
                 with open(path, 'r', encoding='utf-8') as grammar_file:
@@ -96,7 +102,8 @@ class DicelangParser:
         try:
             ast = self.kernel.parse(code, start=start)
         except UnexpectedInput as u:
-            exc_class = u.match_examples(self.kernel.parse, self.make_examples(), use_accepts=True) or DicelangSyntaxError
+            if not (exc_class := u.match_examples(self.kernel.parse, self.make_examples(), use_accepts=True)):
+                raise
             raise exc_class(u.get_context(code), u.line, u.column)
         return ast
 

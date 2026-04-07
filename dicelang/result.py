@@ -8,6 +8,7 @@ class Result:
         self.console = console
         self.error = error
         self.helptext = is_helptext
+        self.hint = error.hint if hasattr(error, 'hint') else None
 
     def __bool__(self) -> bool:
         return self.value is not None

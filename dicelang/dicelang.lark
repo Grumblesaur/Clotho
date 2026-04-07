@@ -42,8 +42,8 @@ iteration: KW_WHILE expr KW_DO body -> while_loop
 
 rvalue: expr
 subscript_chain: subscript+
-subscript: "[" slice "]" -> subscript_bracket
-         | "." scoped_identifier -> subscript_dot
+subscript: "." scoped_identifier -> subscript_dot
+         | "[" slice "]" -> subscript_bracket
 
 slice: expr -> index_or_key
      | ":" ":"? -> whole_slice
