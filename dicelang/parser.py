@@ -92,9 +92,9 @@ class DicelangParser:
     def make_examples(cls):
         return {error_type: error_type.examples for error_type in cls._syntax_errors}
 
-    def parse(self, code: str):
+    def parse(self, code: str, start=None):
         try:
-            ast = self.kernel.parse(code)
+            ast = self.kernel.parse(code, start=start)
         except UnexpectedInput as u:
             exc_class = u.match_examples(self.kernel.parse, self.make_examples(), use_accepts=True) or DicelangSyntaxError
             raise exc_class(u.get_context(code), u.line, u.column)

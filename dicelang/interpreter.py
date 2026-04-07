@@ -49,11 +49,11 @@ class DicelangInterpreter(Interpreter):
             self.start_time = datetime.datetime.now()
             value = self.visit(tree)
             r = result.success(value=value, console=PrintQueue.flush())
-            self.call_stack.datastore.put(itype=IdentType.USER, owner=self.ownership.user, value=value, name='_')
-            self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.ownership.server, value=value, name='_')
-            self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
-            self.call_stack.datastore.put(itype=IdentType.USER_SERVER, owner=f'{self.ownership.server}:{self.ownership.user}', value=value, name='_')
-            self.call_stack.datastore.put(itype=IdentType.CHANNEL, owner=self.ownership.channel, value=value, name='_')
+            # self.call_stack.datastore.put(itype=IdentType.USER, owner=self.ownership.user, value=value, name='_')
+            # self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.ownership.server, value=value, name='_')
+            # self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
+            # self.call_stack.datastore.put(itype=IdentType.USER_SERVER, owner=f'{self.ownership.server}:{self.ownership.user}', value=value, name='_')
+            # self.call_stack.datastore.put(itype=IdentType.CHANNEL, owner=self.ownership.channel, value=value, name='_')
         except Terminate as term:
             r = result.success(value=term.unwrap(), console=PrintQueue.flush())
         except Help as e:
@@ -587,7 +587,11 @@ class DicelangInterpreter(Interpreter):
         return self.visit_children(tree)
 
     def access(self, tree):
-        name, *accessors = self.visit_children(tree)
+        visited = self.visit_children(tree)
+        if len(visited) > 1:
+            name, accessors = visited
+        else:
+            name, accessors = visited[0], []
         action = None
         x = None
         match name:

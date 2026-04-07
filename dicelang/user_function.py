@@ -18,7 +18,9 @@ class UserFunction:
 
         def __exit__(self, exc_type, exc_value, exc_traceback):
             UserFunction.__repr__ = UserFunction.standard_repr
-            return self
+            # Avoid swallowing exceptions
+            if exc_type is not None:
+                raise exc_type(exc_value)
 
     @classmethod
     def reconstruct(cls, code):
@@ -30,7 +32,7 @@ class UserFunction:
     def __init__(self, code_string, closed_over=None):
         """Construct a user-created function from its source code and the
         scope variables it closes over."""
-        ast = parser.parse(code_string, start='function')
+        ast = parser.parse(code_string)
         *self.params, self.code = ast.children
         self.required = len(self.params) - sum(p.is_default() for p in self.params)
         self.validate()
@@ -44,7 +46,7 @@ class UserFunction:
     __repr__ = standard_repr
 
     def alt_repr(self):
-        return f'{self.__class__.__name__}({self.source!r}, {self.closed_over!r}'
+        return f'{self.__class__.__name__}({self.source!r}, {self.closed_over!r})'
 
     def __enter__(self):
         self.__repr__ = self.alt_repr

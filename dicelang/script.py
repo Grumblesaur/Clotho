@@ -37,8 +37,11 @@ if __name__ == '__main__':
         """((a=10, b=10) -> a + b)(5)""",
         """scene x = 1""",
         """delete scene x""",
+        """y = {}; y.f = (x) -> x + 1""",
+        """delete y""",
         # """help("for")""",  # this is working correctly but currently doesn't do anything useful
     ]
+
     for t in tests:
         output = execute('james', 'test', 'general', t)
         print(output)

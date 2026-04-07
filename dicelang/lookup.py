@@ -283,10 +283,8 @@ class Accessor:
 
     def __str__(self) -> str:
         match self.atype:
-            case AccessorType.KEY:
+            case AccessorType.KEY | AccessorType.ATTR:
                 return f'[{self.value!r}]'
-            case AccessorType.ATTR:
-                return f'.{self.value!s}]'
             case AccessorType.SLICE:
                 x, y, z = self.value.start, self.value.stop, self.value.step
                 match int(''.join(str(some(i)) for i in (x, y, z)), base=2):
@@ -417,13 +415,14 @@ class BasicStore:
 
     def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
         store = self.storage[itype or IdentType.SERVER]
-        with UserFunction.SerializationManager():
-            if owner not in store:
-                store[owner] = {name: value}
-            elif name not in store[owner]:
-                store[owner][name] = value
-            else:
-                exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
+        scope = locals()
+        if owner not in store:
+            store[owner] = {name: value}
+        elif name not in store[owner]:
+            store[owner][name] = value
+        else:
+            with UserFunction.SerializationManager():
+                exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}', locals=scope)
         return value
 
     def drop(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
