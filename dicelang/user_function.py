@@ -1,4 +1,4 @@
-from copy import deepcopy
+from copy import deepcopy, copy
 from collections import Counter
 from dicelang.exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
 from dicelang.parser import parser
@@ -68,8 +68,14 @@ class UserFunction:
         return self
 
     def __deepcopy__(self, *args, **kwargs):
-        newtree = type(self.code)(deepcopy(self.code.data), deepcopy(self.code.children))
-        return self.from_ast(newtree, self.params[:], deepcopy(self.closed_over))
+        new = object.__new__(self.__class__)
+        new.code = deepcopy(self.code)
+        new.params = deepcopy(self.params)
+        new.required = self.required
+        new.closed_over = deepcopy(self.closed_over)
+        new.this = self.this
+        new.source = deepcopy(self.source)
+        return new
 
     def validate(self):
         """Ensure that all parameters without default arguments precede all
@@ -108,7 +114,7 @@ class UserFunction:
     def __call__(self, interpreter, *args):
         """Execute the function with the passed arguments and the current
         interpreter state."""
-        arguments = {'this': self.this}
+        arguments = {'self': self.this}
         arguments.update(self.marshal(*args))
         interpreter.call_stack.function_push(arguments, self.closed_over)
         try:
