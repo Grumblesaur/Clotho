@@ -14,7 +14,7 @@ from dicelang.exceptions import BuiltinError, MissingScope, DeleteNonexistent, F
     NoSuchVariable
 from dicelang.utils import get_attr_or_item, some
 from dicelang.special import Undefined
-from dicelang.user_function import UserFunction
+from dicelang.interpreter import UserFunction
 
 NotLocal = object()
 NotBuiltin = object()
