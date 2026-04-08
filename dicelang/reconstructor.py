@@ -23,6 +23,10 @@ class DicelangReconstructor(Interpreter):
         return f'our {tree.children[-1].value}'
 
     @staticmethod
+    def user_server_identifier(tree):
+        return f'this {tree.children[-1].value}'
+
+    @staticmethod
     def public_identifier(tree):
         return f'public {tree.children[-1].value}'
 

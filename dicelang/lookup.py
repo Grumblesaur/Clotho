@@ -465,6 +465,7 @@ class PersistentStore(BasicStore):
                 value = Undefined
             else:
                 value = pickle.loads(pickled[0])
+        super().put(itype, owner, value, name, *accessors)
         return value
 
     def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
