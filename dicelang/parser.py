@@ -82,7 +82,7 @@ class DicelangParser:
                       MissingOpenCurly, MissingCloseCurly, MissingOpenBracket, MissingCloseBracket,
                       InvalidIdentifier}
 
-    def __init__(self):
+    def __init__(self, start='start'):
         for path in self.Paths:
             try:
                 with open(path, 'r', encoding='utf-8') as grammar_file:
@@ -93,7 +93,7 @@ class DicelangParser:
         else:
             paths = ', '.join(str(p) for p in self.Paths)
             raise MissingGrammar(f'Grammar not found along following path(s): {paths}')
-        self.kernel = Lark(self.grammar, parser='earley')
+        self.kernel = Lark(self.grammar, parser='earley', start=start)
 
     @classmethod
     def make_examples(cls):

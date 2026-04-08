@@ -16,6 +16,7 @@ from dicelang.utils import get_attr_or_item, some
 from dicelang.special import Undefined
 from dicelang.interpreter import UserFunction
 
+
 NotLocal = object()
 NotBuiltin = object()
 Scope = dict[str, Any]
