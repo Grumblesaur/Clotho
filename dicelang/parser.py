@@ -68,9 +68,10 @@ class MissingCloseBracket(MissingBrace):
     examples = ['[1, ', '[1, 2']
 
 class InvalidIdentifier(DicelangSyntaxError):
-    label = "Invalid identifier (reserved word)"
-    examples = ["q.r", "p.d", "public begin", "my public", "x.delete"]
     hint = "Try using key notation `p['r']` instead of attribute notation `p.r`."
+    label = "Invalid identifier (reserved word)" + f'\n\n({hint})'
+    examples = ["q.r", "p.d", "public begin", "my public", "x.delete"]
+
 
 
 # NEVER use the 'lalr' parser option. Dicelang's grammar has loads of

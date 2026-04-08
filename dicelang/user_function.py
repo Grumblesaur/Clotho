@@ -106,7 +106,7 @@ class UserFunction:
                     raise BadArguments(f'Got {used} positional arguments, expected {positionals}')
                 marshalled[param.name] = positional[used]
                 used += 1
-        if (n_unfilled := Counter(marshalled.values())[Unfilled]) > 0:
+        if (n_unfilled := list(marshalled.values()).count(Unfilled)) > 0:
             n_args = len(marshalled)
             raise BadArguments(f'Got {n_args - n_unfilled} arguments, expected {n_args}')
         return marshalled
