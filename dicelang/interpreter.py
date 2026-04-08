@@ -63,7 +63,7 @@ class DicelangInterpreter(Interpreter):
             error = IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
             r = result.failure(error=error, console=PrintQueue.flush())
         except Exception as e:
-            r = result.failure(error=e, console=PrintQueue.flush())
+            r = result.failure(error=f'{e.__class__.__name__}: {e!s}', console=PrintQueue.flush())
             traceback.print_tb(e.__traceback__)
         finally:
             self.call_stack.reset()

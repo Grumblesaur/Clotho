@@ -416,14 +416,13 @@ class BasicStore:
 
     def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
         store = self.storage[itype or IdentType.SERVER]
-        scope = locals()
         if owner not in store:
             store[owner] = {name: value}
         elif name not in store[owner]:
             store[owner][name] = value
         else:
             with UserFunction.SerializationManager():
-                exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}', locals=scope)
+                exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
         return value
 
     def drop(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:

@@ -13,7 +13,7 @@ def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Resu
                                      " string quotes, mismatched parentheses or brackets, or used"
                                      " an operator incorrectly.")
     except DicelangSyntaxError as e:
-        r = failure(error=e.context, console=e.label)
+        r = failure(error=e.context, console=f'Syntax error: {e.label}')
     else:
         r = interpreter.execute(ast, as_owner=owner, on_server=server, in_channel=channel)
     return r
