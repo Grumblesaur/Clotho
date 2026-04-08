@@ -33,8 +33,8 @@ class Parameter:
         return f'{self.__class__.__name__}({self.name!r}{d})'
 
 
-def get_attr_or_item(obj: Any, name: str) -> Any:
-    if hasattr(obj, name):
+def get_attr_or_item(obj: Any, name) -> Any:
+    if isinstance(name, str) and hasattr(obj, name):
         return getattr(obj, name)
     try:
         out = obj[name]
