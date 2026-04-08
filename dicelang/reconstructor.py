@@ -272,7 +272,7 @@ class DicelangReconstructor(Interpreter):
         callee, *args = self.visit_children(tree)
         if args:
             args = args[0]
-        return f'{callee}({args})'
+        return f'{callee}({args if args else ""})'
 
     @staticmethod
     def undefined(_):

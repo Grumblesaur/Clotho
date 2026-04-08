@@ -5,6 +5,7 @@ import math
 import operator
 import random
 import traceback
+import pprint
 from collections.abc import Iterable, Sequence
 from functools import partialmethod
 from numbers import Complex
@@ -630,7 +631,8 @@ class DicelangInterpreter(Interpreter):
 
     def function_call(self, tree):
         callee, *arguments = self.visit_children(tree)
-        arguments = arguments[0] if arguments else ()
+        if arguments:
+            arguments = arguments[0]
         if isinstance(callee, UserFunction):
             return callee(self, *arguments)
         return callee(*arguments)
