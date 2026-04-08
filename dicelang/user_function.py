@@ -1,7 +1,8 @@
+import traceback
 from copy import deepcopy, copy
 from collections import Counter
 from dicelang.exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
-from dicelang.parser import parser
+from dicelang.parser import DicelangParser
 from dicelang.reconstructor import DicelangReconstructor
 from dicelang.special import Undefined
 from dicelang.utils import is_sorted, Unfilled
@@ -10,6 +11,8 @@ from dicelang.utils import is_sorted, Unfilled
 class UserFunction:
     """Construct a user-created function specified by Dicelang code."""
     reconstructor = DicelangReconstructor()
+    interpreter = None
+    parser = DicelangParser(start='function')
 
     class SerializationManager:
         def __enter__(self):
@@ -20,6 +23,7 @@ class UserFunction:
             UserFunction.__repr__ = UserFunction.standard_repr
             # Avoid swallowing exceptions
             if exc_type is not None:
+                traceback.print_exception(exc_type, exc_value, exc_traceback)
                 raise exc_type(exc_value)
 
     @classmethod
@@ -32,13 +36,14 @@ class UserFunction:
     def __init__(self, code_string, closed_over=None):
         """Construct a user-created function from its source code and the
         scope variables it closes over."""
-        ast = parser.parse(code_string)
-        *self.params, self.code = ast.children
+        ast = self.parser.parse(code_string)
+        *params, self.code = ast.children
+        self.params = [self.interpreter.visit(p) for p in params]
         self.required = len(self.params) - sum(p.is_default() for p in self.params)
         self.validate()
         self.this = Undefined
         self.closed_over = closed_over or [{}]
-        self.source = f'({", ".join(self.params)}) -> {code_string}'
+        self.source = code_string
 
     def standard_repr(self):
         return self.source
@@ -57,9 +62,11 @@ class UserFunction:
     @classmethod
     def from_ast(cls, interpreter, tree, closed_over=None):
         """Initialize a function from its abstract syntax tree."""
+        if cls.interpreter is None:
+            cls.interpreter = interpreter
         self = object.__new__(cls)
         self.code = tree.children[-1]
-        self.params = [interpreter.visit(c) for c in tree.children[:-1]]
+        self.params = [cls.interpreter.visit(c) for c in tree.children[:-1]]
         self.validate()
         self.required = len(self.params) - sum(p.is_default() for p in self.params)
         self.closed_over = closed_over or [{}]
@@ -117,6 +124,8 @@ class UserFunction:
         arguments = {'self': self.this}
         arguments.update(self.marshal(*args))
         interpreter.call_stack.function_push(arguments, self.closed_over)
+        if self.interpreter is None:
+            self.__class__.interpreter = interpreter
         try:
             out = interpreter.visit(self.code.children[0])
         except Return as rs:

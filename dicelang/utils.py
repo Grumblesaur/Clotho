@@ -26,7 +26,9 @@ class Parameter:
         return self.default is not Unfilled
 
     def __str__(self):
-        return self.name
+        if self.default is Unfilled:
+            return self.name
+        return f'{self.name}={self.default}'
 
     def __repr__(self):
         d = f', {self.default!r}' if self.default is not Unfilled else ''
