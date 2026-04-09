@@ -557,7 +557,6 @@ class DicelangInterpreter(Interpreter):
         return utils.Parameter(str(tree.children[0]), self.visit(tree.children[1]))
 
     def function(self, tree):
-        print(tree)
         closure = self.call_stack.freeze()
         return UserFunction.from_ast(self, tree, closure)
 

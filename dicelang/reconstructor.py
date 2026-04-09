@@ -281,10 +281,16 @@ class DicelangReconstructor(Interpreter):
         return f'{left}{right}'
 
     def function_call(self, tree):
-        callee, *args = self.visit_children(tree)
-        if args:
-            args = args[0]
-        return f'{callee}({args if args else ""})'
+        visited = self.visit_children(tree)
+        callee = visited[0]
+        args = visited[-1]
+        return f'{callee}({args})'
+
+    def arguments(self, tree):
+        visited = self.visit_children(tree)
+        if not visited:
+            return ''
+        return ', '.join(str(arg) for arg in visited)
 
     @staticmethod
     def undefined(_):
