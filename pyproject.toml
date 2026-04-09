@@ -1,6 +1,6 @@
 [project]
 name = "Clotho"
-version = "0.1.4"
+version = "0.1.5"
 description = "Discord (and Stoat) chatbot for math, dice, and tabletop gaming"
 readme = "README.md"
 requires-python = ">=3.14"

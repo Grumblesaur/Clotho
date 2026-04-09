@@ -661,6 +661,25 @@ class DicelangInterpreter(Interpreter):
     def channel_identifier(tree):
         return IdentType.CHANNEL, str(tree.children[1])
 
+    def display(self, tree):
+        _kw_show, kw_var_scope, *_ = tree.children
+        var_scope = None
+        match str(kw_var_scope):
+            case "my":
+                var_scope = IdentType.USER
+            case "our":
+                var_scope = IdentType.SERVER
+            case "this" | "these":
+                var_scope = IdentType.USER_SERVER
+            case "public":
+                var_scope = IdentType.PUBLIC
+            case "scene":
+                var_scope = IdentType.CHANNEL
+            case _:
+                raise Impossible(f'no such var scope: {kw_var_scope.data!r}')
+        owner = self.ownership.get(var_scope)
+        return self.call_stack.datastore.check(var_scope, owner)
+
     augments = {'+=': operator.iadd, '-=': operator.isub, '$=': ops.icat,
                 '*=': operator.imul, '/=': operator.itruediv, '//=': operator.ifloordiv,
                 '%=': operator.imod, '**=': operator.ipow, '<<=': operator.ilshift,

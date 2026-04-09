@@ -400,6 +400,9 @@ class BasicStore:
         self.storage = {IdentType.USER: {}, IdentType.SERVER: {}, IdentType.PUBLIC: {},
                         IdentType.USER_SERVER: {}, IdentType.CHANNEL: {}}
 
+    def check(self, itype: IdentType, owner: str) -> set[str]:
+        return set(self.storage[itype].get(owner, {}).keys())
+
     def get(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
         store = self.storage[itype or IdentType.SERVER]
         failed = False
@@ -458,6 +461,10 @@ class PersistentStore(BasicStore):
     def __del__(self) -> None:
         self.conn.commit()
         self.conn.close()
+
+    def check(self, itype: IdentType, owner: str) -> set[str]:
+        res = self.cur.execute('SELECT name FROM variables WHERE ownership = ? AND owner = ?', (itype, owner))
+        return set(fetched[0] for fetched in res.fetchall())
 
     def get(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
         try:

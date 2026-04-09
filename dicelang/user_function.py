@@ -122,7 +122,6 @@ class UserFunction:
     def __call__(self, interpreter, *args):
         """Execute the function with the passed arguments and the current
         interpreter state."""
-        print(f'[__call__]: args={args}')
         arguments = {'self': self.this}
         arguments.update(self.marshal(*args))
         interpreter.call_stack.function_push(arguments, self.closed_over)
