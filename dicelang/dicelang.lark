@@ -155,7 +155,8 @@ primary: atom
        | primary "(" arguments? ")" -> function_call
        | retrieval
 
-arguments: expr ("," expr)* ","?
+arguments: argument ("," argument)*
+argument: (scoped_identifier "=")? expr
 access: identifier subscript*
 retrieval: access
 rvalue: expr

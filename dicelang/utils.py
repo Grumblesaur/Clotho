@@ -4,6 +4,9 @@ from functools import reduce
 from numbers import Number
 from operator import add
 from typing import Any, Sequence, TypeVar
+
+from more_itertools.more import value_chain
+
 from dicelang.exceptions import InvalidSubscript
 
 T = TypeVar('T')
@@ -17,6 +20,28 @@ def is_sorted(v: Sequence[T]) -> bool:
         prev = item
     return True
 
+class Argument:
+    def __init__(self, value: Any, name: str = None):
+        self.value = value
+        self.name = name
+
+    def is_named(self) -> bool:
+        return self.name is not None
+
+    def __str__(self):
+        if self.is_named():
+            return f'{self.name}={self.value!r}'
+        return f'{self.value!r}'
+
+    def __repr__(self):
+        clsname = self.__class__.__name__
+        if self.is_named():
+            return f'{clsname}({self.value!r}, {self.name})'
+        return f'{clsname}({self.value!r})'
+
+    def pair(self):
+        return self.name, self.value
+
 class Parameter:
     def __init__(self, name, default=Unfilled):
         self.name = name
@@ -24,6 +49,9 @@ class Parameter:
 
     def is_default(self):
         return self.default is not Unfilled
+
+    def pair(self):
+        return self.name, self.default
 
     def __str__(self):
         if self.default is Unfilled:

@@ -1,7 +1,7 @@
 import traceback
-from copy import deepcopy, copy
+from copy import deepcopy
 from collections import Counter
-from dicelang.exceptions import BadArguments, Break, Continue, DuplicateParameter, IllegalSignal, Return
+from dicelang.exceptions import BadArguments, BadParameters, Break, Continue, DuplicateParameter, IllegalSignal, Return
 from dicelang.parser import DicelangParser
 from dicelang.reconstructor import DicelangReconstructor
 from dicelang.special import Undefined
@@ -90,40 +90,41 @@ class UserFunction:
         if not self.params:
             return True
         if not is_sorted([p.is_default() for p in self.params]):
-            raise BadArguments('all keyword arguments must follow positional arguments')
+            raise BadParameters('all keyword arguments must follow positional arguments')
         for p, c in Counter(str(p) for p in self.params).items():
             if c > 1:
                 raise DuplicateParameter(repr(p))
         return True
 
-    def marshal(self, *positional):
+    def marshal(self, *pos_args, **named_args):
         """Given a set of arguments, assign them to parameter names."""
-        print(positional)
-        marshalled = {}
-        positionals = len(positional)
-        used = 0
-        for param in self.params:
-            if param.is_default():
-                if used < positionals:
-                    marshalled[param.name] = positional[used]
-                    used += 1
-                else:
-                    marshalled[param.name] = param.default
-            else:
-                if used > positionals:
-                    raise BadArguments(f'Got {used} positional arguments, expected {positionals}')
-                marshalled[param.name] = positional[used]
-                used += 1
-        if (n_unfilled := list(marshalled.values()).count(Unfilled)) > 0:
-            n_args = len(marshalled)
-            raise BadArguments(f'Got {n_args - n_unfilled} arguments, expected {n_args}')
+        pos_args = list(pos_args)
+        pos_params = [p for p in self.params if not p.is_default()]
+        named_params = [p for p in self.params if p.is_default()]
+
+        if (n_pargs := len(pos_args)) < (n_pparams := len(pos_params)):
+            raise BadArguments(f'{n_pargs} positional arguments passed'
+                                + f' to function with {n_pparams} positional parameter(s)')
+
+        if (n_args := len(pos_args) + len(named_args)) > (n_params := len(pos_params) + len(named_params)):
+            raise BadArguments(f'expected {n_params} total arguments; got {n_args}')
+
+        while len(pos_args) > len(pos_params): # Some of our keyword arguments are being filled positionally
+            pos_params.append(named_params.pop(0))
+
+        marshalled = {pp.name: pa.value for pp, pa in zip(pos_params, pos_args)}
+        marshalled.update(named_params := {np.name: np.default for np in named_params})
+        for name, value in named_args.items():
+            if name not in named_params:
+                raise BadArguments(f'argument {name} does not exist or was filled positionally')
+            marshalled[name] = value
         return marshalled
 
-    def __call__(self, interpreter, *args):
+    def __call__(self, interpreter, *args, **kwargs):
         """Execute the function with the passed arguments and the current
         interpreter state."""
         arguments = {'self': self.this}
-        arguments.update(self.marshal(*args))
+        arguments.update(self.marshal(*args, **kwargs))
         interpreter.call_stack.function_push(arguments, self.closed_over)
         if self.interpreter is None:
             self.__class__.interpreter = interpreter

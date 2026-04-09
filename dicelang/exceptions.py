@@ -100,6 +100,9 @@ class DuplicateParameter(DicelangRuntimeError):
 class BadArguments(DicelangRuntimeError):
     pass
 
+class BadParameters(DicelangRuntimeError):
+    pass
+
 
 class InvalidSubscript(DicelangRuntimeError):
     pass

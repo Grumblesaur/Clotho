@@ -16,7 +16,7 @@ from dicelang import dicecore
 from dicelang import ops
 from dicelang import utils
 from dicelang import result
-from dicelang.exceptions import (BadLiteral, Break, Continue, DicelangSignal, Empty, Help,
+from dicelang.exceptions import (BadLiteral, BadArguments, Break, Continue, DicelangSignal, Empty, Help,
                                  IllegalSignal, Impossible, InvalidSubscript, Return, Terminate,
                                  ExcessiveRuntime)
 from dicelang.lookup import Accessor, CallStack, IdentType, Lookup, Ownership
@@ -632,12 +632,23 @@ class DicelangInterpreter(Interpreter):
         visited = self.visit_children(tree)
         callee = visited[0]
         arguments = visited[-1] if len(visited) > 1 else []
+        if not utils.is_sorted([a.is_named() for a in arguments]):
+            raise BadArguments('named arguments must follow positional arguments')
+        positional = [a for a in arguments if not a.is_named()]
+        named = dict(a.pair() for a in arguments if a.is_named())
         if isinstance(callee, UserFunction):
-            return callee(self, *arguments)
-        return callee(*arguments)
+            return callee(self, *positional, **named)
+        return callee(*[p.value for p in positional], **named)
 
     def arguments(self, tree):
-        return self.visit_children(tree)
+        args = self.visit_children(tree)
+        return args
+
+    def argument(self, tree):
+        visited = self.visit_children(tree)
+        if len(visited) == 1:
+            return utils.Argument(visited[0])
+        return utils.Argument(visited[-1], visited[0][-1])
 
     @staticmethod
     def scoped_identifier(tree):
