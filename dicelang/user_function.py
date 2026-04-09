@@ -98,6 +98,7 @@ class UserFunction:
 
     def marshal(self, *positional):
         """Given a set of arguments, assign them to parameter names."""
+        print(positional)
         marshalled = {}
         positionals = len(positional)
         used = 0
@@ -109,7 +110,7 @@ class UserFunction:
                 else:
                     marshalled[param.name] = param.default
             else:
-                if used >= positionals:
+                if used > positionals:
                     raise BadArguments(f'Got {used} positional arguments, expected {positionals}')
                 marshalled[param.name] = positional[used]
                 used += 1
@@ -121,6 +122,7 @@ class UserFunction:
     def __call__(self, interpreter, *args):
         """Execute the function with the passed arguments and the current
         interpreter state."""
+        print(f'[__call__]: args={args}')
         arguments = {'self': self.this}
         arguments.update(self.marshal(*args))
         interpreter.call_stack.function_push(arguments, self.closed_over)

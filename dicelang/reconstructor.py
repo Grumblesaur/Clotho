@@ -277,8 +277,10 @@ class DicelangReconstructor(Interpreter):
         return ' '.join(self.visit_children(tree))
 
     def retrieval_atomic(self, tree):
-        left, right = self.visit_children(tree)
-        return f'{left}{right}'
+        visited = self.visit_children(tree)
+        primexpr = visited[0]
+        subscripts = visited[-1]
+        return f'{primexpr}{"".join(subscripts)}'
 
     def function_call(self, tree):
         visited = self.visit_children(tree)

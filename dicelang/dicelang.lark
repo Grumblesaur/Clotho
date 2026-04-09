@@ -151,16 +151,15 @@ dice: dice /d/ primary -> die_binary
 
 primary: atom
        | primary subscript* -> retrieval_atomic
-       | primary "(" arguments* ")" -> function_call
+       | primary "(" arguments? ")" -> function_call
        | retrieval
 
+arguments: expr ("," expr)* ","?
 access: identifier subscript*
 retrieval: access
 rvalue: expr
 subscript: "." scoped_identifier -> subscript_dot
          | "[" slice "]" -> subscript_bracket
-
-arguments: expr ("," expr)* ","?
 
 atom: number
     | boolean

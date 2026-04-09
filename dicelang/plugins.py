@@ -20,6 +20,7 @@ exposed = {
     'float': float,
     'dict': dict,
     'tuple': tuple,
+    'list': list,
     'set': set,
     'len': len,
     'magnitude': magnitude,

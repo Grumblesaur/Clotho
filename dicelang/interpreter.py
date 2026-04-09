@@ -627,9 +627,10 @@ class DicelangInterpreter(Interpreter):
         return target
 
     def function_call(self, tree):
-        callee, *arguments = self.visit_children(tree)
-        if arguments:
-            arguments = arguments[0]
+        visited = self.visit_children(tree)
+        callee = visited[0]
+        arguments = visited[-1]
+        print(f'[function_call]: arguments={arguments}')
         if isinstance(callee, UserFunction):
             return callee(self, *arguments)
         return callee(*arguments)
