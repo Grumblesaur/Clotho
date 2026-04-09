@@ -103,6 +103,7 @@ class DicelangParser:
         try:
             ast = self.kernel.parse(code, start=start)
         except UnexpectedInput as u:
+            print(u)
             if not (exc_class := u.match_examples(self.kernel.parse, self.make_examples(), use_accepts=True)):
                 raise
             raise exc_class(u.get_context(code), u.line, u.column)

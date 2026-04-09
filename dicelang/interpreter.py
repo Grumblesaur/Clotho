@@ -666,8 +666,8 @@ class DicelangInterpreter(Interpreter):
     def public_identifier(tree):
         return IdentType.PUBLIC, str(tree.children[1])
 
-    @staticmethod
-    def user_server_identifier(tree):
+
+    def user_server_identifier(self, tree):
         return IdentType.USER_SERVER, str(tree.children[1])
 
     @staticmethod

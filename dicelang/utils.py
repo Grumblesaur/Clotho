@@ -4,15 +4,14 @@ from functools import reduce
 from numbers import Number
 from operator import add
 from typing import Any, Sequence, TypeVar
-
-from more_itertools.more import value_chain
-
 from dicelang.exceptions import InvalidSubscript
 
 T = TypeVar('T')
 Unfilled = sentinel.create()
 
 def is_sorted(v: Sequence[T]) -> bool:
+    if not v:
+        return True
     prev, *rest = v
     for item in rest:
         if prev > item:

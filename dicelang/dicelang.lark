@@ -202,7 +202,7 @@ dict: "{" "}" -> dict_empty
 
 kv_pair: expr ":" expr
 
-IDENT: /(?!(show|public|my|our|scene|this|delete|continue|break|return|terminate|for|while|do|if|else|repeat|in|and|or|not|begin|end|d|r|h|l|is|True|False|Undefined)\b)[a-zA-Z_]+[a-zA-Z0-9_]*/
+IDENT: /(?!(show|public|my|our|scene|this|delete|continue|break|return|terminate|for|while|do|if|else|repeat|in|and|or|not|begin|end|d|r|kh|xh|kl|xl|is|True|False|Undefined)\b)[a-zA-Z_]+[a-zA-Z0-9_]*/
 
 scoped_identifier: IDENT
 user_server_identifier: KW_THIS IDENT

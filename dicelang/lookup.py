@@ -372,14 +372,12 @@ class Lookup:
     def get(self) -> Any:
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             target = maybe_builtin.get
-        elif (maybe_scoped := self.call_stack.get(self.name)) is not NotLocal:
+        elif self.itype is IdentType.SCOPED and (maybe_scoped := self.call_stack.get(self.name)) is not NotLocal:
             target = maybe_scoped
+        elif self.itype is IdentType.SCOPED and not self.call_stack.is_function_active():
+            target = self.call_stack.datastore.get(IdentType.SERVER, self.owner, self.name, *self.accessors)
         else:
-            if self.itype is IdentType.SCOPED and not self.call_stack.is_function_active():
-                itype = IdentType.SERVER
-            else:
-                itype = self.itype
-            target = self.call_stack.datastore.get(itype, self.owner, self.name, *self.accessors)
+            target = self.call_stack.datastore.get(self.itype, self.owner, self.name, *self.accessors)
         for acc in self.accessors:
             target = acc.get(target)
         return target

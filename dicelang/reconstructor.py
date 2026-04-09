@@ -304,9 +304,7 @@ class DicelangReconstructor(Interpreter):
 
     def argument(self, tree):
         visited = self.visit_children(tree)
-        if len(visited) > 1:
-            return f'{visited[0][-1]}={visited[-1]!r}'
-        return repr(visited[0])
+        return '='.join(visited)
 
     @staticmethod
     def undefined(_):
