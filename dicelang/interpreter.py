@@ -132,6 +132,8 @@ class DicelangInterpreter(Interpreter):
                 action = Lookup.scoped
             case (IdentType.USER, x):
                 action = Lookup.user
+            case (IdentType.USER_SERVER, x):
+                action = Lookup.user_server
             case (IdentType.SERVER, x):
                 action = Lookup.server
             case (IdentType.PUBLIC, x):

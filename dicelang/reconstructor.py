@@ -10,6 +10,9 @@ class DicelangReconstructor(Interpreter):
     def __default__(self, tree):
         return self.visit(tree.children[0])
 
+    def deletion(self, tree):
+        return f'delete {", ".join(repr(self.visit(c)) for c in tree.children[1:])}'
+
     @staticmethod
     def scoped_identifier(tree):
         return tree.children[0].value

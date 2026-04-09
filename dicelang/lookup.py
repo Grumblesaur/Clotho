@@ -4,6 +4,7 @@ import sqlite3
 import threading
 import time
 import os
+import sentinel
 from pathlib import Path
 from typing import Any, Protocol, Hashable, Iterable, Self
 from collections import Counter
@@ -18,8 +19,8 @@ from dicelang.user_function import UserFunction
 
 
 dict_keys = type({}.keys())
-NotLocal = object()
-NotBuiltin = object()
+NotLocal = sentinel.create()
+NotBuiltin = sentinel.create()
 Scope = dict[str, Any]
 Frame = list[Scope]
 LookupResult = Any
@@ -92,6 +93,9 @@ class CallStack:
         self.anonymous = []
         self.closure = []
         self.ownership = None
+
+    def is_function_active(self) -> bool:
+        return self.frame > 0
 
     def set_ownership(self, ownership: Ownership, frames: dict | None = None):
         self.ownership = ownership
@@ -191,7 +195,6 @@ class CallStack:
                     if key in scope:
                         return scope[key]
             return NotLocal
-
         for scope in reversed(frame):
             if key in scope:
                 return scope[key]
@@ -372,7 +375,10 @@ class Lookup:
         elif (maybe_scoped := self.call_stack.get(self.name)) is not NotLocal:
             target = maybe_scoped
         else:
-            itype = self.itype if self.itype is not IdentType.SCOPED else IdentType.SERVER
+            if self.itype is IdentType.SCOPED and not self.call_stack.is_function_active():
+                itype = IdentType.SERVER
+            else:
+                itype = self.itype
             target = self.call_stack.datastore.get(itype, self.owner, self.name, *self.accessors)
         for acc in self.accessors:
             target = acc.get(target)
@@ -381,7 +387,7 @@ class Lookup:
     def put(self, value: Any) -> Any:
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             raise BuiltinError.from_instance(maybe_builtin, "assign to")
-        elif self.itype == IdentType.SCOPED and self.call_stack.frame > 0:
+        elif self.itype == IdentType.SCOPED and self.call_stack.is_function_active():
             return self.call_stack.put(self.name, value)
         itype = self.itype if self.itype is not IdentType.SCOPED else IdentType.SERVER
         return self.call_stack.datastore.put(itype, self.owner, value, self.name, *self.accessors)
@@ -389,9 +395,9 @@ class Lookup:
     def drop(self) -> Any:
         if (maybe_builtin := Module(self.name)) is not NotBuiltin:
             raise BuiltinError.from_instance(maybe_builtin, "delete")
-        elif self.itype == IdentType.SCOPED and IdentType.SCOPED > 0:
+        elif self.itype == IdentType.SCOPED and self.call_stack.is_function_active():
             return self.call_stack.drop(self.name)
-        itype = self.itype if self.itype is not IdentType.SCOPED else IdentType.SERVER
+        itype = IdentType.SERVER if self.itype is IdentType.SCOPED and not self.call_stack.is_function_active() else self.itype
         return self.call_stack.datastore.drop(itype, self.owner, self.name, *self.accessors)
 
 
