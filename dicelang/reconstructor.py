@@ -279,14 +279,15 @@ class DicelangReconstructor(Interpreter):
     def retrieval_atomic(self, tree):
         visited = self.visit_children(tree)
         primexpr = visited[0]
-        subscripts = visited[-1]
+        subscripts = visited[1:]
         return f'{primexpr}{"".join(subscripts)}'
 
     def function_call(self, tree):
         visited = self.visit_children(tree)
         callee = visited[0]
-        args = visited[-1]
-        return f'{callee}({args})'
+        args = visited[-1] if len(visited) > 1 else ''
+        s = f'{callee}({args})'
+        return s
 
     def arguments(self, tree):
         visited = self.visit_children(tree)

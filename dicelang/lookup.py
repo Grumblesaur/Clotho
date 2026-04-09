@@ -16,6 +16,8 @@ from dicelang.utils import get_attr_or_item, some
 from dicelang.special import Undefined
 from dicelang.user_function import UserFunction
 
+
+dict_keys = type({}.keys())
 NotLocal = object()
 NotBuiltin = object()
 Scope = dict[str, Any]
@@ -421,6 +423,10 @@ class BasicStore:
             store[owner][name] = value
         else:
             with UserFunction.SerializationManager():
+                if isinstance(value, dict_keys):
+                    # dict_keys can't be serialized or pickled for *reasons*, so we convert it
+                    # here to a set, which is a similar enough object
+                    value = set(value)
                 exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
         return value
 
@@ -469,6 +475,8 @@ class PersistentStore(BasicStore):
     def put(self, itype: IdentType, owner: str, value, name: str, *accessors: Accessor) -> Any:
         super().put(itype, owner, value, name, *accessors)
         obj = self.storage[itype or IdentType.SERVER][owner][name]
+        if isinstance(obj, dict_keys):
+            obj = set(obj)
         self.cur.execute('''INSERT INTO variables VALUES(?, ?, ?, ?)
                              ON CONFLICT(ownership, owner, name)
                              DO UPDATE SET value = EXCLUDED.value''', (itype, owner, name, pickle.dumps(obj)))
