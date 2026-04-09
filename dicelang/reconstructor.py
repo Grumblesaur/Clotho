@@ -111,7 +111,15 @@ class DicelangReconstructor(Interpreter):
         return f'::{self.visit(tree.children[0])}'
 
     def assignment_single(self, tree):
-        return ' '.join(self.visit_children(tree))
+        visited = self.visit_children(tree)
+        return ' '.join(visited)
+
+    def access(self, tree):
+        visited = self.visit_children(tree)
+        name = visited[0]
+        accessors = visited[1:]
+        subscripts = ''.join(str(a) for a in accessors)
+        return f'{name}{subscripts}'
 
     def augmented(self, tree):
         return ' '.join(self.visit_children(tree))

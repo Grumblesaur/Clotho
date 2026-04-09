@@ -50,11 +50,11 @@ class DicelangInterpreter(Interpreter):
             self.start_time = datetime.datetime.now()
             value = self.visit(tree)
             r = result.success(value=value, console=PrintQueue.flush())
-            # self.call_stack.datastore.put(itype=IdentType.USER, owner=self.ownership.user, value=value, name='_')
-            # self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.ownership.server, value=value, name='_')
-            # self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
-            # self.call_stack.datastore.put(itype=IdentType.USER_SERVER, owner=f'{self.ownership.server}:{self.ownership.user}', value=value, name='_')
-            # self.call_stack.datastore.put(itype=IdentType.CHANNEL, owner=self.ownership.channel, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.USER, owner=self.ownership.user, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.SERVER, owner=self.ownership.server, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.PUBLIC, owner=self.default_owner, value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.USER_SERVER, owner=f'{self.ownership.server}:{self.ownership.user}', value=value, name='_')
+            self.call_stack.datastore.put(itype=IdentType.CHANNEL, owner=self.ownership.channel, value=value, name='_')
         except Terminate as term:
             r = result.success(value=term.unwrap(), console=PrintQueue.flush())
         except Help as e:
@@ -557,6 +557,7 @@ class DicelangInterpreter(Interpreter):
         return utils.Parameter(str(tree.children[0]), self.visit(tree.children[1]))
 
     def function(self, tree):
+        print(tree)
         closure = self.call_stack.freeze()
         return UserFunction.from_ast(self, tree, closure)
 
@@ -585,15 +586,10 @@ class DicelangInterpreter(Interpreter):
         visited = self.visit(tree.children[0])
         return Accessor.attr(visited[-1])
 
-    def subscript_chain(self, tree):
-        return self.visit_children(tree)
-
     def access(self, tree):
         visited = self.visit_children(tree)
-        if len(visited) > 1:
-            name, accessors = visited
-        else:
-            name, accessors = visited[0], []
+        name = visited[0]
+        accessors = visited[1:]
         action = None
         x = None
         match name:
@@ -617,7 +613,9 @@ class DicelangInterpreter(Interpreter):
         return self.visit(tree.children[0]).get()
 
     def retrieval_atomic(self, tree):
-        target, subscripts = self.visit_children(tree)
+        visited = self.visit_children(tree)
+        target = visited[0]
+        subscripts = visited[1:]
         last = Undefined
         for accessor in subscripts:
             last = target
@@ -676,7 +674,7 @@ class DicelangInterpreter(Interpreter):
         return target.put(self.augments[op](target.get(), augment))
 
     def assignment_single(self, tree):
-        lval, _, rval = self.visit_children(tree)
+        lval, _eq_sign, rval = self.visit_children(tree)
         return lval.put(rval)
 
     def __default__(self, tree):

@@ -40,11 +40,6 @@ iteration: KW_WHILE expr KW_DO body -> while_loop
          | KW_DO body KW_WHILE expr -> do_while_loop
          | KW_FOR identifier KW_IN expr KW_DO body -> for_loop
 
-rvalue: expr
-subscript_chain: subscript+
-subscript: "." scoped_identifier -> subscript_dot
-         | "[" slice "]" -> subscript_bracket
-
 slice: expr -> index_or_key
      | ":" ":"? -> whole_slice
      | expr ":" ":"? -> start_slice
@@ -58,11 +53,11 @@ slice: expr -> index_or_key
 expr: assignment
 
 deletion: KW_DELETE access ("," access)* ","?
-assignment: lvalue OP_ASSIGN rvalue -> assignment_single
+assignment: access OP_ASSIGN rvalue -> assignment_single
           | deletion
           | augmented
 
-augmented: lvalue OP_AUGMENT rvalue -> augmented_any
+augmented: access OP_AUGMENT rvalue -> augmented_any
          | flow_control
 
 flow_control: function
@@ -155,13 +150,15 @@ dice: dice /d/ primary -> die_binary
     | primary
 
 primary: atom
-       | primary subscript_chain -> retrieval_atomic
+       | primary subscript* -> retrieval_atomic
        | primary "(" arguments* ")" -> function_call
        | retrieval
 
-access: identifier subscript_chain?
+access: identifier subscript*
 retrieval: access
-lvalue: access
+rvalue: expr
+subscript: "." scoped_identifier -> subscript_dot
+         | "[" slice "]" -> subscript_bracket
 
 arguments: expr ("," expr)* ","?
 
