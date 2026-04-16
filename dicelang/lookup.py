@@ -5,6 +5,7 @@ import threading
 import time
 import os
 import sentinel
+import atexit
 from pathlib import Path
 from typing import Any, Protocol, Hashable, Iterable, Self
 from collections import Counter
