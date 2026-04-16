@@ -230,5 +230,92 @@ class TestDice(unittest.TestCase):
         self.assertTrue(2 <= r.unwrap() <= 12)
 
 
+class TestBitwise(unittest.TestCase):
+    def test_bitwise_and(self):
+        r = execute('3 & 5')
+        self.assertTrue(r.unwrap_eq(1))
+
+    def test_bitwise_or(self):
+        r = execute('3 | 5')
+        self.assertTrue(r.unwrap_eq(7))
+
+    def test_bitwise_xor(self):
+        r = execute('3 ^ 5')
+        self.assertTrue(r.unwrap_eq(6))
+
+
+class TestComparisons(unittest.TestCase):
+    def test_comparisons(self):
+        r = execute("4 > 3 < 5 == (4 + 1) != 6 >= 6 <= 8")
+        self.assertTrue(r.unwrap())
+
+    def test_identity(self):
+        # Technically this is a peculiarity of Python
+        r = execute("1 is 1")
+        self.assertTrue(r.unwrap())
+        r = execute("[] is not []")
+        self.assertTrue(r.unwrap())
+
+    def test_membership(self):
+        r = execute("1 in {1, 2, 3}")
+        self.assertTrue(r.unwrap())
+        r = execute("() in {1, 2, 3}")
+        self.assertFalse(r.unwrap())
+
+class TestBooleans(unittest.TestCase):
+    def test_and(self):
+        r = execute('1 and 1')
+        self.assertTrue(r.unwrap())
+        r = execute('1 and 0')
+        self.assertFalse(r.unwrap())
+        r = execute('0 and 1')
+        self.assertFalse(r.unwrap())
+        r = execute('0 and 0')
+        self.assertFalse(r.unwrap())
+
+    def test_or(self):
+        r = execute('1 or 1')
+        self.assertTrue(r.unwrap())
+        r = execute('1 or 0')
+        self.assertTrue(r.unwrap())
+        r = execute('0 or 1')
+        self.assertTrue(r.unwrap())
+        r = execute('0 or 0')
+        self.assertFalse(r.unwrap())
+
+    def test_xor(self):
+        r = execute('1 xor 1')
+        self.assertFalse(r.unwrap())
+        r = execute('1 xor 0')
+        self.assertTrue(r.unwrap())
+        r = execute('0 or 1')
+        self.assertTrue(r.unwrap())
+        r = execute('0 or 0')
+        self.assertFalse(r.unwrap())
+
+
+class TestFlowControl(unittest.TestCase):
+    def test_repeat(self):
+        r = execute('4d6kh3 repeat 6')
+        rolls = r.unwrap()
+        self.assertEqual(len(rolls), 6)
+        for roll in rolls:
+            self.assertTrue(3 <= roll <= 18)
+
+    def test_inline_if(self):
+        r = execute('"foo" if True else "bar"')
+        self.assertTrue(r.unwrap_eq('foo'))
+        r = execute('"foo" if False else "bar"')
+        self.assertTrue(r.unwrap_eq('bar'))
+
+
+class TestFunctions(unittest.TestCase):
+    def test_functions(self):
+        r = execute('(() -> "")()')
+        self.assertTrue(r.unwrap_eq(''))
+        r = execute('((a, b) -> a + b)(1, 2)')
+        self.assertTrue(r.unwrap_eq(3))
+
+
 if __name__ == '__main__':
     unittest.main()
