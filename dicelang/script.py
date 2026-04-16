@@ -10,6 +10,7 @@ fl = Flattener()
 def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Result:
     try:
         ast = parser.parse(dicelang_script)
+        print(ast)
         ast_flattened = fl.transform(ast)
         print(ast_flattened)
     except lark.LarkError as e:
@@ -25,7 +26,7 @@ def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Resu
 
 if __name__ == '__main__':
     tests = [
-        "((a, b) -> begin a + b end)(1, 2)",
+        "((a, b) -> a + b)(1, 2)",
     ]
 
     for t in tests:

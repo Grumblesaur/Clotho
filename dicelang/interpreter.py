@@ -683,7 +683,7 @@ class DicelangInterpreter(Interpreter):
                 var_scope = IdentType.USER
             case "our":
                 var_scope = IdentType.SERVER
-            case "this" | "these":
+            case "this" | "these" | "them":
                 var_scope = IdentType.USER_SERVER
             case "public":
                 var_scope = IdentType.PUBLIC

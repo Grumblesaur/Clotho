@@ -14,10 +14,6 @@ class Flattener(lark.InlineTransformer):
                          'assignment', 'augmented', 'conditional'}
 
     def flatten(self, tree):
-        if isinstance(tree, lark.Token):
-            return tree
-        if tree.data in self.passthrough_rules:
-            return tree.children[0]
         return self.transform(tree)
 
     @classmethod
