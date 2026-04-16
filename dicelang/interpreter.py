@@ -5,6 +5,7 @@ import math
 import operator
 import random
 import traceback
+import sys
 from collections.abc import Iterable, Sequence
 from functools import partialmethod
 from numbers import Complex
@@ -709,7 +710,13 @@ class DicelangInterpreter(Interpreter):
         return lval.put(rval)
 
     def __default__(self, tree):
-        return self.visit(tree.children[0])
+        try:
+            x = self.visit(tree.children[0])
+        except AttributeError as e:
+            print(e)
+            print(tree)
+            sys.exit()
+        return x
 
     def deletion(self, tree):
         deleted = tuple(target.drop() for target in self.visit_children(tree)[1:])

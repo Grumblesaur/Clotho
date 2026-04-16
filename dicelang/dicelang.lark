@@ -80,18 +80,18 @@ flow: (KW_CONTINUE | KW_BREAK | KW_RETURN | KW_TERMINATE) repeat? -> keyword
     | repeat
 
 repeat: repeat /\brepeat\b/ expr -> repetition
-      | or
+      | logical_or
 
-or: or "or" xor -> boolean_or
-  | xor
+logical_or: logical_or "or" logical_xor -> boolean_or
+  | logical_xor
 
-xor: xor "xor" and -> boolean_xor
-   | and
+logical_xor: logical_xor "xor" logical_and -> boolean_xor
+   | logical_and
 
-and: and "and" not -> boolean_and
-   | not
+logical_and: logical_and "and" logical_not -> boolean_and
+   | logical_not
 
-not: KW_NOT comparison -> boolean_not
+logical_not: KW_NOT comparison -> boolean_not
    | comparison
 
 comparison: bitwise_or ((/>/|/</|/>=/|/<=/|/==/|/!=/) bitwise_and)+ -> compare_math
