@@ -45,8 +45,7 @@ if __name__ == '__main__':
     ]
 
     new_tests = [
-        """p = {'q': {'r': (x) -> x + x}}""",
-        """p.q.r(1)"""
+        """not []""",
     ]
 
     for t in new_tests:

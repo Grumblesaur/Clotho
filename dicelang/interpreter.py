@@ -435,7 +435,7 @@ class DicelangInterpreter(Interpreter):
         return evaluated
 
     def boolean_not(self, tree):
-        return not self.visit(tree.children[0])
+        return not self.visit(tree.children[-1])
 
     @staticmethod
     def number(tree):
