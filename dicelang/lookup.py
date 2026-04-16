@@ -4,16 +4,16 @@ import sqlite3
 import threading
 import time
 import os
+
 import sentinel
-import atexit
 from pathlib import Path
 from typing import Any, Protocol, Hashable, Iterable, Self
 from collections import Counter
 from enum import Enum, IntEnum
 
 from dicelang import plugins
-from dicelang.exceptions import BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible, \
-    NoSuchVariable
+from dicelang.exceptions import (BuiltinError, MissingScope, DeleteNonexistent, FetchNonexistent, Impossible,
+                                 NoSuchVariable, ClassCreationError)
 from dicelang.utils import get_attr_or_item, some
 from dicelang.special import Undefined
 from dicelang.user_function import UserFunction
@@ -492,9 +492,14 @@ class PersistentStore(BasicStore):
         obj = self.storage[itype or IdentType.SERVER][owner][name]
         if isinstance(obj, dict_keys):
             obj = set(obj)
-        self.cur.execute('''INSERT INTO variables VALUES(?, ?, ?, ?)
-                             ON CONFLICT(ownership, owner, name)
-                             DO UPDATE SET value = EXCLUDED.value''', (itype, owner, name, pickle.dumps(obj)))
+        try:
+            self.cur.execute('''INSERT INTO variables VALUES(?, ?, ?, ?)
+                                 ON CONFLICT(ownership, owner, name)
+                                 DO UPDATE SET value = EXCLUDED.value''', (itype, owner, name, pickle.dumps(obj)))
+        except pickle.PicklingError as e:
+            nice = ClassCreationError("Dynamically-created Python classes are not allowed.")
+            nice.add_note(str(e))
+            raise nice
         self.conn.commit()
         return value
 

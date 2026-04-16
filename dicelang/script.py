@@ -24,8 +24,8 @@ def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Resu
 
 if __name__ == '__main__':
     tests = [
-        "f = typeof('a')",
-        "f(1) == '1'",
+        "f = typeof(typeof('a'))",
+        'Point = f("Point", (), {"x": 0, "y": 0})'
     ]
 
     for t in tests:

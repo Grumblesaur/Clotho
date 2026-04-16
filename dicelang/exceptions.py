@@ -141,3 +141,6 @@ class BuiltinError(DicelangRuntimeError):
             case _:
                 err = "variable"
         return cls(f"can't {action_name} built-in {err}.")
+
+class ClassCreationError(DicelangRuntimeError):
+    pass
