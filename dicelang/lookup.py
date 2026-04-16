@@ -435,7 +435,10 @@ class BasicStore:
                     # dict_keys can't be serialized or pickled for *reasons*, so we convert it
                     # here to a set, which is a similar enough object
                     value = set(value)
-                exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {value!r}')
+                r = repr(value)
+                if isinstance(value, type):
+                    r = value.__name__
+                exec(f'store[owner][name]{"".join(str(acc) for acc in accessors)} = {r}')
         return value
 
     def drop(self, itype: IdentType, owner: str, name: str, *accessors: Accessor) -> Any:
