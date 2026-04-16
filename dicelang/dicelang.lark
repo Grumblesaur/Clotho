@@ -127,7 +127,7 @@ factor: "-" factor -> unary_minus
       | "~" factor -> bit_not
       | power
 
-power: special "**" factor -> exponent
+power: special "**" power -> exponent
      | special
 
 special: "&" dice -> sum_or_join
