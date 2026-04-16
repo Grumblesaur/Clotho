@@ -23,8 +23,8 @@ class Target(IntEnum):
 
 def kernel(dice: int, sides: int, n: int = 1, mode: Mode = Mode.KEEP, target: Target = Target.ALL, as_sum: bool = True) -> RollResult:
     if mode is Mode.KEEP and n > dice or mode is Mode.DROP and n >= dice:
-        raise ImpossibleDice(f'tried to {"keep" if mode else "drop"} {n} {"die" if n == 1 else "dice"},'
-                             + f' but only {dice} {"die was" if n == 1 else "dice were"} rolled.')
+        raise ImpossibleDice(f'tried to {"keep" if mode else "drop"} {n} {"die" if n == 1 else "dice"}'
+                             + f' from {dice} {"die" if dice == 1 else "dice"} rolled.')
     if n < 1:
         raise ImpossibleDice(f'tried to {"keep" if mode else "drop"} non-positive number of dice ({n})')
 

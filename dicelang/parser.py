@@ -73,7 +73,6 @@ class InvalidIdentifier(DicelangSyntaxError):
     examples = ["q.r", "p.d", "public begin", "my public", "x.delete"]
 
 
-
 # NEVER use the 'lalr' parser option. Dicelang's grammar has loads of
 # shift/reduce conflicts which 'earley' can handle.
 class DicelangParser:

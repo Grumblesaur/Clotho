@@ -5,6 +5,7 @@ import math
 import operator
 import random
 import traceback
+import sys
 from collections.abc import Iterable, Sequence
 from functools import partialmethod
 from numbers import Complex
@@ -63,7 +64,7 @@ class DicelangInterpreter(Interpreter):
             error = IllegalSignal(f'{e.__class__.__name__} used outside of flow control context')
             r = result.failure(error=error, console=PrintQueue.flush())
         except Exception as e:
-            r = result.failure(error=f'{e.__class__.__name__}: {e!s}', console=PrintQueue.flush())
+            r = result.failure(error=f'{e.__class__.__name__}: {e!s}', console=PrintQueue.flush(), exc_type=e.__class__)
             traceback.print_tb(e.__traceback__)
         finally:
             self.call_stack.reset()
@@ -682,7 +683,7 @@ class DicelangInterpreter(Interpreter):
                 var_scope = IdentType.USER
             case "our":
                 var_scope = IdentType.SERVER
-            case "this" | "these":
+            case "this" | "these" | "them":
                 var_scope = IdentType.USER_SERVER
             case "public":
                 var_scope = IdentType.PUBLIC
@@ -709,7 +710,13 @@ class DicelangInterpreter(Interpreter):
         return lval.put(rval)
 
     def __default__(self, tree):
-        return self.visit(tree.children[0])
+        try:
+            x = self.visit(tree.children[0])
+        except AttributeError as e:
+            print(e)
+            print(tree)
+            sys.exit()
+        return x
 
     def deletion(self, tree):
         deleted = tuple(target.drop() for target in self.visit_children(tree)[1:])
