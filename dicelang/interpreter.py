@@ -37,6 +37,10 @@ class DicelangInterpreter(Interpreter):
         self.start_time = None
         self.limited = self.command_limit is not None
 
+        # XXX: Tight coupling, very bad, but it has to do for now
+        if UserFunction.interpreter is None:
+            UserFunction.interpreter = self
+
     def execute_test(self, tree):
         self.ownership = Ownership(user=self.default_owner, server=self.default_server)
         try:
