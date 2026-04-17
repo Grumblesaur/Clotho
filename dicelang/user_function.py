@@ -41,6 +41,7 @@ class UserFunction:
         ast = self.parser.parse(code_string)
         ast = self.flattener.transform(ast)
         *params, self.code = ast.children
+        print(params)
         self.params = [self.interpreter.visit(p) for p in params]
         self.required = len(self.params) - sum(p.is_default() for p in self.params)
         self.validate()
