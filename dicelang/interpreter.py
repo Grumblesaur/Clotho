@@ -718,7 +718,9 @@ class DicelangInterpreter(Interpreter):
                 f.write(str(e))
                 f.write('\n\n')
                 f.write(repr(tree))
-                f.write('\n')
+                f.write('\n\n')
+                f.write(''.join(traceback.format_exception(e)))
+                print('\n')
             sys.exit(1)
         return x
 
