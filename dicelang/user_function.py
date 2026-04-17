@@ -5,13 +5,15 @@ from dicelang.exceptions import BadArguments, BadParameters, Break, Continue, Du
 from dicelang.parser import DicelangParser
 from dicelang.reconstructor import DicelangReconstructor
 from dicelang.special import Undefined
-from dicelang.utils import is_sorted, Unfilled
+from dicelang.utils import is_sorted
+from dicelang.flattener import Flattener
 
 
 class UserFunction:
     """Construct a user-created function specified by Dicelang code."""
     reconstructor = DicelangReconstructor()
     interpreter = None
+    flattener = Flattener()
     parser = DicelangParser(start='function')
 
     class SerializationManager:
@@ -37,6 +39,7 @@ class UserFunction:
         """Construct a user-created function from its source code and the
         scope variables it closes over."""
         ast = self.parser.parse(code_string)
+        ast = self.flattener.transform(ast)
         *params, self.code = ast.children
         self.params = [self.interpreter.visit(p) for p in params]
         self.required = len(self.params) - sum(p.is_default() for p in self.params)
