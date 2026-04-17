@@ -713,9 +713,13 @@ class DicelangInterpreter(Interpreter):
         try:
             x = self.visit(tree.children[0])
         except AttributeError as e:
-            print(e)
-            print(tree)
-            sys.exit()
+            now = datetime.datetime.now()
+            with open(f"error-dump-{now.strftime('%Y%m%d-%H%M%S')}.txt", 'w') as f:
+                f.write(str(e))
+                f.write('\n\n')
+                f.write(repr(tree))
+                f.write('\n')
+            sys.exit(1)
         return x
 
     def deletion(self, tree):
