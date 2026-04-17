@@ -10,9 +10,7 @@ fl = Flattener()
 def execute(owner: str, server: str, channel: str, dicelang_script: str) -> Result:
     try:
         ast = parser.parse(dicelang_script)
-        print(ast)
         ast_flattened = fl.transform(ast)
-        print(ast_flattened)
     except lark.LarkError as e:
         r = failure(error=e, console="Parsing error. You may have mistyped a keyword, forgot"
                                      " string quotes, mismatched parentheses or brackets, or used"
