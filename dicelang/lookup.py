@@ -4,6 +4,7 @@ import sqlite3
 import threading
 import time
 import os
+import atexit
 
 import sentinel
 from pathlib import Path
@@ -465,6 +466,14 @@ class PersistentStore(BasicStore):
             PRIMARY KEY(ownership, owner, name)
         );""")
         self.conn.commit()
+
+        def exit_handler():
+            print(f'{self.__class__.__name__} {id(self)} closing down...')
+            self.conn.commit()
+            self.conn.close()
+            print('\tDone.')
+
+        atexit.register(exit_handler)
 
     def __del__(self) -> None:
         self.conn.commit()
